@@ -40,10 +40,6 @@ app/build/intermediates/ndkBuild/
 # Android Profiling
 *.hprof
 
-# Gradle Wrapper
-gradle/wrapper/gradle-wrapper.properties
-gradle-wrapper.jar
-
 # Local configuration file for Firebase (if you use Firebase)
 app/google-services.json
 
