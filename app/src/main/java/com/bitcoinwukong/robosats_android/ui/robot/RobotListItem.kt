@@ -2,9 +2,10 @@ package com.bitcoinwukong.robosats_android.ui.robot
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Divider
@@ -32,17 +33,21 @@ fun RobotListItem(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = robot?.nickname ?: "Loading...",
-        )
+        // Display the first 8 characters and the last 4 characters of the token
+        val displayToken =
+            if (token.length > 12) token.take(8) + "..." + token.takeLast(4) else token
 
-        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = "${robot?.nickname ?: "Loading robot info..."} ($displayToken)",
+            modifier = Modifier.weight(1f)
+        )
 
         if (token == selectedToken) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = "Selected",
-                tint = Color.Green
+                tint = Color.Green,
+                modifier = Modifier.size(24.dp) // Specifying the icon size
             )
         }
     }
@@ -52,17 +57,24 @@ fun RobotListItem(
 @Preview(showBackground = true)
 @Composable
 fun RobotListItemPreviewOnlyToken() {
-    RobotListItem("token1", null, "token1") {}
+    val token = "XWdQIua1zwlK60rw00IVd64fvwbk0DyJC8ye"
+    Row(modifier = Modifier.width(350.dp)) {
+        RobotListItem(token, null, token) {}
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun RobotListItemPreview() {
+    val token = "XWdQIua1zwlK60rw00IVd64fvwbk0DyJC8ye"
     val robot1 = Robot(
-        "token1",
+        token,
         "pub_key",
         "enc_priv_key",
-        nickname = "robot1",
+        nickname = "ContinuousSnowwhite345",
     )
-    RobotListItem("token1", robot1, "token1") {}
+
+    Row(modifier = Modifier.width(350.dp)) {
+        RobotListItem(token, robot1, token) {}
+    }
 }
