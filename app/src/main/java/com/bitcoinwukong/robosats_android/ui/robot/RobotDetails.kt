@@ -47,7 +47,7 @@ fun RobotDetails(
             // Active Order ID Button
             robot.activeOrderId?.let { activeOrderId ->
                 Button(onClick = { showPopup = true }) {
-                    Text("Active Order ID: ${activeOrderId}")
+                    Text("Active Order ID: $activeOrderId")
                 }
             } ?: run {
                 Button(onClick = onClickCreateOrder, enabled = true) {
@@ -77,7 +77,7 @@ fun RobotDetailsPreviewNoActiveOrder() {
         "enc_priv_key",
         nickname = "robot1",
     )
-    RobotDetails(MockSharedViewModel(), robot1, {})
+    RobotDetails(MockSharedViewModel(), robot1) {}
 }
 
 @Preview(showBackground = true)
@@ -90,5 +90,5 @@ fun RobotDetailsPreviewActiveOrder() {
         nickname = "robot1",
         activeOrderId = 92998
     )
-    RobotDetails(MockSharedViewModel(), robot1, {})
+    RobotDetails(MockSharedViewModel(), robot1) {}
 }

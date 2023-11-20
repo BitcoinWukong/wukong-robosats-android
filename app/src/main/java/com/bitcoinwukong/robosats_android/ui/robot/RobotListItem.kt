@@ -52,8 +52,7 @@ fun RobotListItem(
 @Preview(showBackground = true)
 @Composable
 fun RobotListItemPreviewOnlyToken() {
-    RobotListItem("token1", null, "token1") { t ->
-    }
+    RobotListItem("token1", null, "token1") {}
 }
 
 @Preview(showBackground = true)
@@ -65,6 +64,5 @@ fun RobotListItemPreview() {
         "enc_priv_key",
         nickname = "robot1",
     )
-    RobotListItem("token1", robot1, "token1") { t ->
-    }
+    RobotListItem("token1", robot1, "token1") {}
 }
