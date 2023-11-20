@@ -112,20 +112,23 @@ class SharedViewModel(
             val result = torRepository.getRobotInfo(token)
 
             result.onSuccess { robot ->
-                val currentInfo = _robotsInfoMap.value ?: mapOf()
-                val updatedInfo = currentInfo.toMutableMap().apply { put(token, robot) }
-                _robotsInfoMap.postValue(updatedInfo)
-
-                if (_selectedToken.value == robot.token) {
-                    _selectedRobot.postValue(robot)
-                }
-
+                updateRobotInfoInMap(token, robot)
                 Log.d(TAG, "Fetched robot info: $robot")
             }.onFailure { e ->
-                // TODO: Alert about invalid token
-                removeRobot(token)
+                val errorMessageRobot = Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
+                updateRobotInfoInMap(token, errorMessageRobot)
                 Log.e(TAG, "Error fetching robot info: ${e.message}")
             }
+        }
+    }
+
+    private fun updateRobotInfoInMap(token: String, robot: Robot) {
+        val currentInfo = _robotsInfoMap.value ?: mapOf()
+        val updatedInfo = currentInfo.toMutableMap().apply { put(token, robot) }
+        _robotsInfoMap.postValue(updatedInfo)
+
+        if (_selectedToken.value == robot.token) {
+            _selectedRobot.postValue(robot)
         }
     }
 
@@ -199,7 +202,7 @@ class SharedViewModel(
             val result = torRepository.performOrderAction(robot.token, orderId, "pause")
             result.onSuccess {
                 getOrderDetails(robot, orderId)
-            }.onFailure { e ->
+            }.onFailure { _ ->
                 getOrderDetails(robot, orderId)
             }
         }

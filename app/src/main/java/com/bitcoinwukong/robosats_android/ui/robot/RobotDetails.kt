@@ -1,12 +1,16 @@
 package com.bitcoinwukong.robosats_android.ui.robot
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,70 +29,105 @@ import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 @Composable
 fun RobotDetails(
     viewModel: ISharedViewModel,
-    robot: Robot,
+    robot: Robot?,
     onClickCreateOrder: () -> Unit
 ) {
-    var showPopup by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        contentAlignment = Alignment.Center, // Center content
+        modifier = Modifier.fillMaxSize()
     ) {
-        Spacer(modifier = Modifier.weight(1f))
-        Row(
+        if (robot == null) {
+            CircularProgressIndicator()
+            return
+        } else if (robot.errorMessage != null) {
+            Text(text = robot.errorMessage)
+            return
+        }
+        var showPopup by remember { mutableStateOf(false) }
+
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.Center, // Centers the content horizontally
-            verticalAlignment = Alignment.CenterVertically
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Active Order ID Button
-            robot.activeOrderId?.let { activeOrderId ->
-                Button(onClick = { showPopup = true }) {
-                    Text("Active Order ID: $activeOrderId")
-                }
-            } ?: run {
-                Button(onClick = onClickCreateOrder, enabled = true) {
-                    Text("Create Order")
+            Spacer(modifier = Modifier.weight(1f))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.Center, // Centers the content horizontally
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Active Order ID Button
+                robot.activeOrderId?.let { activeOrderId ->
+                    Button(onClick = { showPopup = true }) {
+                        Text("Active Order ID: $activeOrderId")
+                    }
+                } ?: run {
+                    Button(onClick = onClickCreateOrder, enabled = true) {
+                        Text("Create Order")
+                    }
                 }
             }
-        }
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-        // Popup
-        if (showPopup) {
-            OrderDetailsDialog(
-                onDismiss = { showPopup = false },
-                viewModel = viewModel,
-                robot = robot
-            )
+            // Popup
+            if (showPopup) {
+                OrderDetailsDialog(
+                    onDismiss = { showPopup = false },
+                    viewModel = viewModel,
+                    robot = robot
+                )
+            }
         }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
+fun RobotDetailsPreviewLoading() {
+    Box(modifier = Modifier.size(300.dp)) {
+        RobotDetails(MockSharedViewModel(), null) {}
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RobotDetailsPreviewErrorMessage() {
+    Box(modifier = Modifier.size(300.dp)) {
+        val robot = Robot(
+            "token1",
+            errorMessage = "Unable to load robot"
+        )
+        RobotDetails(MockSharedViewModel(), robot) {}
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
 fun RobotDetailsPreviewNoActiveOrder() {
-    val robot1 = Robot(
-        "token1",
-        "pub_key",
-        "enc_priv_key",
-        nickname = "robot1",
-    )
-    RobotDetails(MockSharedViewModel(), robot1) {}
+    Box(modifier = Modifier.size(300.dp)) {
+        val robot1 = Robot(
+            "token1",
+            nickname = "robot1",
+        )
+        RobotDetails(MockSharedViewModel(), robot1) {}
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun RobotDetailsPreviewActiveOrder() {
-    val robot1 = Robot(
-        "token1",
-        "pub_key",
-        "enc_priv_key",
-        nickname = "robot1",
-        activeOrderId = 92998
-    )
-    RobotDetails(MockSharedViewModel(), robot1) {}
+    Box(modifier = Modifier.size(300.dp)) {
+
+        val robot1 = Robot(
+            "token1",
+            "pub_key",
+            "enc_priv_key",
+            nickname = "robot1",
+            activeOrderId = 92998
+        )
+        RobotDetails(MockSharedViewModel(), robot1) {}
+    }
 }
