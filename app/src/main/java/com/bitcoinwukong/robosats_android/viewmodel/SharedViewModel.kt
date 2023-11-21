@@ -50,6 +50,8 @@ class SharedViewModel(
     private var _activeOrder = MutableLiveData<OrderData?>(null)
     override val activeOrder: LiveData<OrderData?> get() = _activeOrder
 
+    private val _ordersCache = mutableMapOf<Int, OrderData>()
+
     override fun restartTor() {
         torRepository.restartTor()
     }
@@ -77,10 +79,17 @@ class SharedViewModel(
             result.onSuccess { ordersList ->
                 _orders.postValue(ordersList)
                 _lastUpdated.postValue(LocalDateTime.now())
+                updateOrdersCache(ordersList)
                 Log.d("SharedViewModel", "Orders update completed: $ordersList")
             }.onFailure { e ->
                 Log.e("SharedViewModel", "Error fetching orders: ${e.message}")
             }
+        }
+    }
+
+    private fun updateOrdersCache(orders: List<OrderData>) {
+        orders.forEach { order ->
+            _ordersCache[order.id!!] = order
         }
     }
 
@@ -185,12 +194,15 @@ class SharedViewModel(
 
     override fun getOrderDetails(robot: Robot, orderId: Int) {
         Log.d(TAG, "getting order details: $orderId")
-        _activeOrder.value = null
+        _activeOrder.value = _ordersCache[orderId]
 
         viewModelScope.launch {
             val result = torRepository.getOrderDetails(robot.token, orderId)
             result.onSuccess { orderData ->
-                _activeOrder.postValue(orderData)
+                _ordersCache[orderId] = orderData
+                if (_selectedRobot.value?.activeOrderId == orderId) {
+                    _activeOrder.postValue(orderData)
+                }
                 Log.d("SharedViewModel", "getOrderDetails completed: $orderData")
             }.onFailure { e ->
                 Log.e("SharedViewModel", "getOrderDetails failed: ${e.message}")
