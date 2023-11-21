@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -13,6 +14,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
@@ -43,7 +45,7 @@ fun OrderDetailsDialog(
                 val order = activeOrder!!
                 Column {
                     if (order.status == OrderStatus.PUBLIC) {
-                        Text("Order is now public")
+                        OrderDetailsSection(order)
 
                         Button(onClick = {
                             viewModel.pauseResumeOrder(robot, orderId)
@@ -85,12 +87,25 @@ fun OrderDetailsDialog(
     )
 }
 
+@Composable
+fun OrderDetailsSection(order: OrderData) {
+    Column(modifier = Modifier.padding(8.dp)) {
+        Text(text = "Order ID: ${order.id ?: "Not available"}")
+        Text(text = "Type: ${order.type}")
+        Text(text = "Currency: ${order.currency}")
+        Text(text = "Amount: ${order.formattedAmount()}")
+        Text(text = "Payment Method: ${order.paymentMethod}")
+    }
+}
+
+
 @Preview(showBackground = true)
 @Composable
 fun PauseOrderDialogPreview() {
     val order = OrderData(
         id = 91593,
         type = OrderType.BUY,
+        amount = 21.0,
         currency = Currency.USD,
         status = OrderStatus.PUBLIC
     )
@@ -130,7 +145,6 @@ fun ResumeOrderDialogPreview() {
         )
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable
