@@ -126,7 +126,7 @@ class SharedViewModel(
         _robotsInfoMap.postValue(updatedInfo)
 
         if (_selectedToken.value == robot.token) {
-            _selectedRobot.postValue(robot)
+            updateSelectedRobotInternal(robot)
         }
     }
 
@@ -230,7 +230,17 @@ class SharedViewModel(
 
     private fun updateSelectedRobot(token: String?) {
         _selectedToken.value = token ?: ""
-        _selectedRobot.value = token?.let { _robotsInfoMap.value?.get(it) }
+        val robot = token?.let { _robotsInfoMap.value?.get(it) }
+        updateSelectedRobotInternal(robot)
+    }
+
+    private fun updateSelectedRobotInternal(robot: Robot?) {
+        val previousValue = _selectedRobot.value
+        _selectedRobot.value = robot
+
+        if (robot != previousValue && robot?.activeOrderId != null) {
+            getOrderDetails(robot, robot.activeOrderId)
+        }
     }
 
     private fun saveTokens(tokens: Set<String>) {

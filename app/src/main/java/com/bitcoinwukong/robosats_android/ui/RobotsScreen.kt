@@ -129,8 +129,8 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
         ) {
             // Inside the LazyColumn in RobotsScreen
             items(robotTokens.toList()) { token ->
-                RobotListItem(token, robotsInfoMap[token], selectedToken) { t ->
-                    viewModel.selectRobot(t)
+                RobotListItem(token, robotsInfoMap[token], selectedToken) { robotToken ->
+                    viewModel.selectRobot(robotToken)
                 }
             }
         }

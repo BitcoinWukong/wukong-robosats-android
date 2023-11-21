@@ -1,4 +1,4 @@
-package com.bitcoinwukong.robosats_android.ui.order
+package com.bitcoinwukong.robosats_android.ui.robot
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,83 +31,68 @@ import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
 @Composable
-fun OrderDetailsDialog(
+fun OrderDetailsContent(
     viewModel: ISharedViewModel,
     robot: Robot,
-    onDismiss: () -> Unit
 ) {
     val orderId = robot.activeOrderId ?: return
-    viewModel.getOrderDetails(robot, orderId)
     val activeOrder by viewModel.activeOrder.observeAsState(null)
+
     val context = LocalContext.current
     val clipboardManager =
         LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    if (activeOrder == null) {
+        Text("Loading...")
+    } else {
+        val order = activeOrder!!
+        Column {
+            if (order.status == OrderStatus.PUBLIC) {
+                OrderDetailsSection(order)
 
-    AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = { Text(text = "Order Details") },
-        text = {
-            if (activeOrder == null) {
-                Text("Loading...")
-            } else {
-                val order = activeOrder!!
-                Column {
-                    if (order.status == OrderStatus.PUBLIC) {
-                        OrderDetailsSection(order)
+                Button(onClick = {
+                    viewModel.pauseResumeOrder(robot, orderId)
+                }) {
+                    Text("Pause Order")
+                }
+            } else if (order.status == OrderStatus.PAUSED) {
+                Text("Order is now paused")
 
-                        Button(onClick = {
-                            viewModel.pauseResumeOrder(robot, orderId)
-                        }) {
-                            Text("Pause Order")
-                        }
-                    } else if (order.status == OrderStatus.PAUSED) {
-                        Text("Order is now paused")
-
-                        Button(onClick = {
-                            viewModel.pauseResumeOrder(robot, orderId)
-                        }) {
-                            Text("Resume Order")
-                        }
-                    } else if (order.status == OrderStatus.WAITING_FOR_MAKER_BOND) {
-                        order.bondInvoice?.let { bondInvoice ->
-                            Text("Waiting for maker bond:")
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                modifier = Modifier.clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse("lightning:$bondInvoice")
-                                    }
-                                    context.startActivity(intent)
-                                }, text = bondInvoice
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(16.dp)
-
-                            ) {
-                                Button(onClick = {
-                                    val clip = ClipData.newPlainText("invoice", bondInvoice)
-                                    clipboardManager.setPrimaryClip(clip)
-                                }) {
-                                    Text("Copy Invoice")
-                                }
+                Button(onClick = {
+                    viewModel.pauseResumeOrder(robot, orderId)
+                }) {
+                    Text("Resume Order")
+                }
+            } else if (order.status == OrderStatus.WAITING_FOR_MAKER_BOND) {
+                order.bondInvoice?.let { bondInvoice ->
+                    Text("Waiting for maker bond:")
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        modifier = Modifier.clickable {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("lightning:$bondInvoice")
                             }
+                            context.startActivity(intent)
+                        }, text = bondInvoice
+                    )
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(16.dp)
+
+                    ) {
+                        Button(onClick = {
+                            val clip = ClipData.newPlainText("invoice", bondInvoice)
+                            clipboardManager.setPrimaryClip(clip)
+                        }) {
+                            Text("Copy Invoice")
                         }
-                    } else {
-                        Text("Unknown order status")
                     }
                 }
+            } else {
+                Text("Unknown order status")
             }
-        },
-        confirmButton = {
-            Button(onClick = {
-                onDismiss()
-            }) {
-                Text("Cancel")
-            }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -125,7 +109,7 @@ fun OrderDetailsSection(order: OrderData) {
 
 @Preview(showBackground = true)
 @Composable
-fun PauseOrderDialogPreview() {
+fun PauseOrderDetailsPreview() {
     val order = OrderData(
         id = 91593,
         type = OrderType.BUY,
@@ -139,17 +123,16 @@ fun PauseOrderDialogPreview() {
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     RobosatsAndroidTheme {
-        OrderDetailsDialog(
+        OrderDetailsContent(
             mockSharedViewModel,
-            robot1,
-            onDismiss = { },
+            robot1
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun ResumeOrderDialogPreview() {
+fun ResumeOrderDetailsPreview() {
     val order = OrderData(
         id = 91593,
         type = OrderType.BUY,
@@ -162,17 +145,16 @@ fun ResumeOrderDialogPreview() {
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     RobosatsAndroidTheme {
-        OrderDetailsDialog(
+        OrderDetailsContent(
             mockSharedViewModel,
-            robot1,
-            onDismiss = { },
+            robot1
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun WaitingForMakerBondOrderDialogPreview() {
+fun WaitingForMakerBondOrderDetailsPreview() {
     val order = OrderData(
         id = 91593,
         type = OrderType.BUY,
@@ -187,10 +169,9 @@ fun WaitingForMakerBondOrderDialogPreview() {
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     RobosatsAndroidTheme {
-        OrderDetailsDialog(
+        OrderDetailsContent(
             mockSharedViewModel,
-            robot1,
-            onDismiss = { },
+            robot1
         )
     }
 }
