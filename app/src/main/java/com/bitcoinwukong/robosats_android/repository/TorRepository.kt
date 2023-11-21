@@ -269,6 +269,7 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
     suspend fun getOrderDetails(
         token: String,
         orderId: Int): Result<OrderData> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "getOrderDetails: $orderId")
         makeGeneralRequest(
             api = "order",
             token = token,
@@ -282,6 +283,15 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
             }
         )
     }
+
+    suspend fun pauseResumeOrder(
+        token: String,
+        orderId: Int,
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "pauseResumeOrder: $orderId")
+        performOrderAction(token, orderId, "pause")
+    }
+
     suspend fun performOrderAction(
         token: String,
         orderId: Int,

@@ -112,7 +112,7 @@ class SharedViewModel(
 
             result.onSuccess { robot ->
                 updateRobotInfoInMap(token, robot)
-                Log.d(TAG, "Fetched robot info: $robot")
+                Log.d(TAG, "Fetched robot info: ${robot.nickname}")
             }.onFailure { e ->
                 val errorMessageRobot =
                     Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
@@ -207,17 +207,16 @@ class SharedViewModel(
     }
 
     override fun pauseResumeOrder(robot: Robot, orderId: Int) {
-        // Invalidate current active order and cache
-        _activeOrder.value = null
+        Log.d(TAG, "pauseResumeOrder: $orderId")
+        // Invalidate the order data
         _ordersCache.remove(orderId)
+        if (_activeOrder.value?.id == orderId) {
+            _activeOrder.postValue(null)
+        }
 
         viewModelScope.launch {
-            val result = torRepository.performOrderAction(robot.token, orderId, "pause")
-            result.onSuccess {
-                getOrderDetails(robot, orderId)
-            }.onFailure { _ ->
-                getOrderDetails(robot, orderId)
-            }
+            torRepository.pauseResumeOrder(robot.token, orderId)
+            getOrderDetails(robot, orderId)
         }
     }
 
@@ -250,7 +249,7 @@ class SharedViewModel(
         _selectedRobot.value = robot
 
         if (robot != previousValue && robot?.activeOrderId != null) {
-            getOrderDetails(robot, robot.activeOrderId)
+            _activeOrder.value = _ordersCache[robot.activeOrderId]
         }
     }
 
