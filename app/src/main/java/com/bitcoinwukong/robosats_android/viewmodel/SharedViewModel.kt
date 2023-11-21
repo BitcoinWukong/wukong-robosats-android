@@ -7,10 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
-import com.bitcoinwukong.robosats_android.model.OrderType
-import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
 import io.matthewnelson.kmp.tor.manager.common.state.TorState
@@ -52,6 +49,8 @@ class SharedViewModel(
 
     private var _activeOrder = MutableLiveData<OrderData?>(null)
     override val activeOrder: LiveData<OrderData?> get() = _activeOrder
+
+    private val _ordersCache = mutableMapOf<Int, OrderData>()
 
     override fun restartTor() {
         torRepository.restartTor()
@@ -112,20 +111,27 @@ class SharedViewModel(
             val result = torRepository.getRobotInfo(token)
 
             result.onSuccess { robot ->
-                val currentInfo = _robotsInfoMap.value ?: mapOf()
-                val updatedInfo = currentInfo.toMutableMap().apply { put(token, robot) }
-                _robotsInfoMap.postValue(updatedInfo)
-
-                if (_selectedToken.value == robot.token) {
-                    _selectedRobot.postValue(robot)
-                }
-
-                Log.d(TAG, "Fetched robot info: $robot")
+                updateRobotInfoInMap(token, robot)
+                Log.d(TAG, "Fetched robot info: ${robot.nickname}")
             }.onFailure { e ->
-                // TODO: Alert about invalid token
-                removeRobot(token)
+                val errorMessageRobot =
+                    Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
+                updateRobotInfoInMap(token, errorMessageRobot)
                 Log.e(TAG, "Error fetching robot info: ${e.message}")
             }
+        }
+    }
+
+    private fun updateRobotInfoInMap(token: String, robot: Robot) {
+        val currentInfo = _robotsInfoMap.value ?: mapOf()
+        val updatedInfo = currentInfo.toMutableMap().apply { put(token, robot) }
+        _robotsInfoMap.postValue(updatedInfo)
+
+        if (_selectedToken.value == robot.token) {
+            updateSelectedRobotInternal(robot)
+        }
+        if (robot.activeOrderId != null) {
+            getOrderDetails(robot, robot.activeOrderId)
         }
     }
 
@@ -159,19 +165,23 @@ class SharedViewModel(
     }
 
     override fun createOrder(
-        orderType: OrderType,
-        currency: Currency,
-        amount: Double,
-        paymentMethod: PaymentMethod
+        orderData: OrderData
     ) {
         val robot = _selectedRobot.value ?: return
         viewModelScope.launch {
             // Todo: update view model and UI base on the orde creation result
             val result = torRepository.makeOrder(
-                robot.token, orderType, currency, amount = amount.toString(), paymentMethod = paymentMethod
+                robot.token,
+                orderData.type,
+                orderData.currency,
+                amount = orderData.amount.toString(),
+                paymentMethod = orderData.paymentMethod,
+                premium = orderData.premium?.toString() ?: "",
             )
             result.onSuccess {
                 fetchRobotInfo(robot.token)
+
+
             }.onFailure { e ->
                 Log.e(TAG, "Error in createOrder: ${e.message}")
             }
@@ -180,12 +190,15 @@ class SharedViewModel(
 
     override fun getOrderDetails(robot: Robot, orderId: Int) {
         Log.d(TAG, "getting order details: $orderId")
-        _activeOrder.value = null
+        _activeOrder.value = _ordersCache[orderId]
 
         viewModelScope.launch {
             val result = torRepository.getOrderDetails(robot.token, orderId)
             result.onSuccess { orderData ->
-                _activeOrder.postValue(orderData)
+                _ordersCache[orderId] = orderData
+                if (_selectedRobot.value?.activeOrderId == orderId) {
+                    _activeOrder.postValue(orderData)
+                }
                 Log.d("SharedViewModel", "getOrderDetails completed: $orderData")
             }.onFailure { e ->
                 Log.e("SharedViewModel", "getOrderDetails failed: ${e.message}")
@@ -194,14 +207,16 @@ class SharedViewModel(
     }
 
     override fun pauseResumeOrder(robot: Robot, orderId: Int) {
-        _activeOrder.value = null
+        Log.d(TAG, "pauseResumeOrder: $orderId")
+        // Invalidate the order data
+        _ordersCache.remove(orderId)
+        if (_activeOrder.value?.id == orderId) {
+            _activeOrder.postValue(null)
+        }
+
         viewModelScope.launch {
-            val result = torRepository.performOrderAction(robot.token, orderId, "pause")
-            result.onSuccess {
-                getOrderDetails(robot, orderId)
-            }.onFailure { e ->
-                getOrderDetails(robot, orderId)
-            }
+            torRepository.pauseResumeOrder(robot.token, orderId)
+            getOrderDetails(robot, orderId)
         }
     }
 
@@ -225,7 +240,17 @@ class SharedViewModel(
 
     private fun updateSelectedRobot(token: String?) {
         _selectedToken.value = token ?: ""
-        _selectedRobot.value = token?.let { _robotsInfoMap.value?.get(it) }
+        val robot = token?.let { _robotsInfoMap.value?.get(it) }
+        updateSelectedRobotInternal(robot)
+    }
+
+    private fun updateSelectedRobotInternal(robot: Robot?) {
+        val previousValue = _selectedRobot.value
+        _selectedRobot.value = robot
+
+        if (robot != previousValue && robot?.activeOrderId != null) {
+            _activeOrder.value = _ordersCache[robot.activeOrderId]
+        }
     }
 
     private fun saveTokens(tokens: Set<String>) {

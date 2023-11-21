@@ -7,6 +7,6 @@ import org.junit.Test
 class PaymentMethodTest {
     @Test
     fun testParsePaymentMethod() {
-        Assert.assertEquals(PaymentMethod.AMAZON_USA_GIFTCARD, PaymentMethod.fromString("Amazon USA GiftCard"))
+        Assert.assertEquals(PaymentMethod.CASH_F2F, PaymentMethod.fromString("Cash F2F"))
     }
 }

@@ -165,7 +165,7 @@ fun OrderRow(orderData: OrderData) {
 fun MarketScreenPreview() {
     RobosatsAndroidTheme {
         val orders = listOf(
-            OrderData(id = 91593, type = OrderType.BUY, currency = Currency.USD, minAmount = 50.0, maxAmount = 175.0, paymentMethod = PaymentMethod.AMAZON_USA_GIFTCARD, price = 105.0, premium = 5.0),
+            OrderData(id = 91593, type = OrderType.BUY, currency = Currency.USD, minAmount = 50.0, maxAmount = 175.0, paymentMethod = PaymentMethod.USDT, price = 105.0, premium = 5.0),
             OrderData(id = 2, type = OrderType.SELL, currency = Currency.EUR, amount = 200.0, paymentMethod = PaymentMethod.CUSTOM, customPaymentMethod = "PaymentMethod2", price = 210.0, premium = -2.0),
             OrderData(id = 91595, type = OrderType.BUY, currency = Currency.BTC, minAmount = 150.0, maxAmount = 2000.0, paymentMethod = PaymentMethod.CUSTOM, customPaymentMethod = "PaymentMethod3",  price = 315.0, premium = -4.91)
         )

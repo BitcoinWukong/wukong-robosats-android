@@ -4,8 +4,8 @@ import org.json.JSONObject
 
 data class Robot(
     val token: String,
-    val publicKey: String,
-    val encryptedPrivateKey: String,
+    val publicKey: String ?= null,
+    val encryptedPrivateKey: String ?= null,
     val nickname: String ?= null,
     val earnedRewards: Int = 0,
     val wantsStealth: Boolean = true,
@@ -14,7 +14,9 @@ data class Robot(
     val tgToken: String ?= null,
     val tgBotName: String ?= null,
     val activeOrderId: Int? = null,
-    val lastOrderId: Int? = null
+    val lastOrderId: Int? = null,
+    // Error message for fetching robot info failure
+    val errorMessage: String? = null
 ) {
     companion object {
         fun fromTokenAndJson(token: String, jsonObject: JSONObject): Robot {
