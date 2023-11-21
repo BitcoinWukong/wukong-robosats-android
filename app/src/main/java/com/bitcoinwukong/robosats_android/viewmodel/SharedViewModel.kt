@@ -7,10 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
-import com.bitcoinwukong.robosats_android.model.OrderType
-import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
 import io.matthewnelson.kmp.tor.manager.common.state.TorState
@@ -115,7 +112,8 @@ class SharedViewModel(
                 updateRobotInfoInMap(token, robot)
                 Log.d(TAG, "Fetched robot info: $robot")
             }.onFailure { e ->
-                val errorMessageRobot = Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
+                val errorMessageRobot =
+                    Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
                 updateRobotInfoInMap(token, errorMessageRobot)
                 Log.e(TAG, "Error fetching robot info: ${e.message}")
             }
@@ -162,19 +160,23 @@ class SharedViewModel(
     }
 
     override fun createOrder(
-        orderType: OrderType,
-        currency: Currency,
-        amount: Double,
-        paymentMethod: PaymentMethod
+        orderData: OrderData
     ) {
         val robot = _selectedRobot.value ?: return
         viewModelScope.launch {
             // Todo: update view model and UI base on the orde creation result
             val result = torRepository.makeOrder(
-                robot.token, orderType, currency, amount = amount.toString(), paymentMethod = paymentMethod
+                robot.token,
+                orderData.type,
+                orderData.currency,
+                amount = orderData.amount.toString(),
+                paymentMethod = orderData.paymentMethod,
+                premium = orderData.premium?.toString() ?: "",
             )
             result.onSuccess {
                 fetchRobotInfo(robot.token)
+
+
             }.onFailure { e ->
                 Log.e(TAG, "Error in createOrder: ${e.message}")
             }

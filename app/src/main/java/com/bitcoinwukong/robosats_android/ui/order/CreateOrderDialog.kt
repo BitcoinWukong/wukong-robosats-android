@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.bitcoinwukong.robosats_android.model.Currency
+import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
@@ -21,14 +22,14 @@ import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 
 @Composable
 fun CreateOrderDialog(
-    onOrderCreated: (OrderType, Currency, Double, PaymentMethod) -> Unit,
+    onCreateOrder: (OrderData) -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = { onDismiss() },
         title = { Text("Create Order") },
         text = {
-            CreateOrderContent(onOrderCreated)
+            CreateOrderContent(onCreateOrder)
         },
         confirmButton = {
         },
@@ -41,7 +42,7 @@ fun CreateOrderDialog(
 }
 
 @Composable
-fun CreateOrderContent(onOrderCreated: (OrderType, Currency, Double, PaymentMethod) -> Unit) {
+fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
     var selectedOrderType by remember { mutableStateOf(OrderType.BUY) }
     var selectedCurrency by remember { mutableStateOf(Currency.USD) }
     var amount by remember { mutableStateOf("") }
@@ -49,6 +50,8 @@ fun CreateOrderContent(onOrderCreated: (OrderType, Currency, Double, PaymentMeth
     var customPaymentMethod by remember {
         mutableStateOf("")
     }
+    var premium by remember { mutableStateOf("") }
+
 
     Column {
         WKDropdownMenu(
@@ -79,6 +82,13 @@ fun CreateOrderContent(onOrderCreated: (OrderType, Currency, Double, PaymentMeth
             onItemSelected = { selectedPaymentMethod = it }
         )
 
+        OutlinedTextField(
+            value = premium,
+            onValueChange = { premium = it },
+            label = { Text("Premium") },
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+        )
+
         if (selectedPaymentMethod == PaymentMethod.CUSTOM) {
             OutlinedTextField(
                 value = customPaymentMethod,
@@ -89,13 +99,17 @@ fun CreateOrderContent(onOrderCreated: (OrderType, Currency, Double, PaymentMeth
         Button(
             onClick = {
                 val orderAmount = amount.toDoubleOrNull()
-                if (orderAmount != null) {
-                    onOrderCreated(
-                        selectedOrderType,
-                        selectedCurrency,
-                        orderAmount,
-                        selectedPaymentMethod,
+                val orderPremium = premium.toDoubleOrNull()
+
+                if (orderAmount != null && orderPremium != null) {
+                    val orderData = OrderData(
+                        type = selectedOrderType,
+                        currency = selectedCurrency,
+                        amount = orderAmount,
+                        paymentMethod = selectedPaymentMethod,
+                        premium = orderPremium,
                     )
+                    onCreateOrder(orderData)
                 }
             },
             enabled = amount.isNotBlank()
@@ -109,10 +123,8 @@ fun CreateOrderContent(onOrderCreated: (OrderType, Currency, Double, PaymentMeth
 @Composable
 fun CreateOrderContentPreview() {
     RobosatsAndroidTheme {
-        // Provide a sample implementation for the onOrderCreated lambda
-        CreateOrderContent { orderType, currency, amount, paymentMethod ->
-            // For preview, we just print the inputs. In actual app, this will create the order.
-            println("Order Type: $orderType, Currency: $currency, Amount: $amount, Payment Method: $paymentMethod")
+        CreateOrderContent { orderData ->
+            println(orderData)
         }
     }
 }

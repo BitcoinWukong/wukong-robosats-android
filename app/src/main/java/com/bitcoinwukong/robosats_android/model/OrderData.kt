@@ -5,7 +5,7 @@ import org.json.JSONObject
 import java.time.LocalDateTime
 
 data class OrderData(
-    val id: Int,
+    val id: Int?= null,
     val type: OrderType,
     val currency: Currency,
     val amount: Double? = null,
@@ -13,7 +13,7 @@ data class OrderData(
     val maxAmount: Double? = null,
     val paymentMethod: PaymentMethod = PaymentMethod.CUSTOM,
     val customPaymentMethod: String? = null,
-    val price: Double,
+    val price: Double?= null,
     val premium: Double? = null,
     // Additional fields for detailed view
     val status: OrderStatus? = null,

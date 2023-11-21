@@ -68,9 +68,9 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
     // Triggered when "Create Order" button is clicked
     if (showCreateOrderDialog) {
         CreateOrderDialog(
-            onOrderCreated = { orderType, currency, amount, paymentMethod ->
+            onCreateOrder = { orderData ->
                 // Implement order creation logic
-                viewModel.createOrder(orderType, currency, amount, paymentMethod)
+                viewModel.createOrder(orderData)
                 showCreateOrderDialog = false
             },
             onDismiss = { showCreateOrderDialog = false }
@@ -179,8 +179,6 @@ fun RobotsScreenPreview() {
         val robotTokens = setOf("token1", "token2", "token3")
         val robot1 = Robot(
             "token1",
-            "pub_key",
-            "enc_priv_key",
             nickname = "robot1",
         )
         val robotsInfoMap = mapOf(
