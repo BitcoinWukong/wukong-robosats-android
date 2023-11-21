@@ -141,11 +141,10 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
         ) {
             Button(
                 onClick = {
-                    // Copy the selected token to the clipboard
-                    val clip = ClipData.newPlainText("simple text", selectedToken)
+                    val clip = ClipData.newPlainText("robot token", selectedToken)
                     clipboardManager.setPrimaryClip(clip)
                 },
-                enabled = selectedToken.isNotEmpty() // Enable button only when a token is selected
+                enabled = selectedToken.isNotEmpty()
             ) {
                 Text("Copy Token")
             }
@@ -154,7 +153,7 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
                 onClick = {
                     viewModel.removeRobot(selectedToken)
                 },
-                enabled = selectedToken.isNotEmpty() // Enable button only when a token is selected
+                enabled = selectedToken.isNotEmpty()
             ) {
                 Text("Delete")
             }

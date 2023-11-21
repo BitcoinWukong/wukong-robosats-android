@@ -1,9 +1,15 @@
 package com.bitcoinwukong.robosats_android.ui.order
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -11,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,6 +41,8 @@ fun OrderDetailsDialog(
     viewModel.getOrderDetails(robot, orderId)
     val activeOrder by viewModel.activeOrder.observeAsState(null)
     val context = LocalContext.current
+    val clipboardManager =
+        LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     AlertDialog(
         onDismissRequest = { onDismiss() },
@@ -62,6 +71,8 @@ fun OrderDetailsDialog(
                         }
                     } else if (order.status == OrderStatus.WAITING_FOR_MAKER_BOND) {
                         order.bondInvoice?.let { bondInvoice ->
+                            Text("Waiting for maker bond:")
+                            Spacer(Modifier.height(16.dp))
                             Text(
                                 modifier = Modifier.clickable {
                                     val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -70,6 +81,19 @@ fun OrderDetailsDialog(
                                     context.startActivity(intent)
                                 }, text = bondInvoice
                             )
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .padding(16.dp)
+
+                            ) {
+                                Button(onClick = {
+                                    val clip = ClipData.newPlainText("invoice", bondInvoice)
+                                    clipboardManager.setPrimaryClip(clip)
+                                }) {
+                                    Text("Copy Invoice")
+                                }
+                            }
                         }
                     } else {
                         Text("Unknown order status")
