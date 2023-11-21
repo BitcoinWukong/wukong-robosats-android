@@ -5,7 +5,7 @@ import org.json.JSONObject
 import java.time.LocalDateTime
 
 data class OrderData(
-    val id: Int?= null,
+    val id: Int? = null,
     val type: OrderType,
     val currency: Currency,
     val amount: Double? = null,
@@ -13,7 +13,7 @@ data class OrderData(
     val maxAmount: Double? = null,
     val paymentMethod: PaymentMethod = PaymentMethod.CUSTOM,
     val customPaymentMethod: String? = null,
-    val price: Double?= null,
+    val price: Double? = null,
     val premium: Double? = null,
     // Additional fields for detailed view
     val status: OrderStatus? = null,
@@ -27,7 +27,9 @@ data class OrderData(
     val escrowDuration: Int? = null,
     val bondSize: Double? = null,
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val bondInvoice: String? = null,
+    val bondSats: Int? = null
 ) {
     companion object {
         fun fromJson(jsonObject: JSONObject): OrderData {
@@ -38,7 +40,8 @@ data class OrderData(
             val premium = jsonObject.optString("premium").toDoubleOrNull()
 
             val paymentMethod = PaymentMethod.fromString(jsonObject.getString("payment_method"))
-            val customMethod = if (paymentMethod == PaymentMethod.CUSTOM) jsonObject.getString("payment_method") else null
+            val customMethod =
+                if (paymentMethod == PaymentMethod.CUSTOM) jsonObject.getString("payment_method") else null
 
             val status = jsonObject.optInt("status", -1).takeIf { it != -1 }
                 ?.let { OrderStatus.fromCode(it) }
@@ -66,7 +69,9 @@ data class OrderData(
                 escrowDuration = jsonObject.optInt("escrow_duration", -1).takeIf { it != -1 },
                 bondSize = jsonObject.optDouble("bond_size", 0.0),
                 latitude = jsonObject.optString("latitude").toDoubleOrNull(),
-                longitude = jsonObject.optString("longitude").toDoubleOrNull()
+                longitude = jsonObject.optString("longitude").toDoubleOrNull(),
+                bondInvoice = jsonObject.optString("bond_invoice", "").takeIf { it.isNotEmpty() },
+                bondSats = jsonObject.optInt("bond_satoshis", -1).takeIf { it != -1 },
             )
         }
     }
@@ -88,7 +93,13 @@ data class OrderData(
     private fun formatAmount(amount: Double?, minAmount: Double?, maxAmount: Double?): String {
         return when {
             amount != null -> String.format("%.0f", amount)
-            minAmount != null && maxAmount != null -> "${String.format("%.0f", minAmount)} ~ ${String.format("%.0f", maxAmount)}"
+            minAmount != null && maxAmount != null -> "${
+                String.format(
+                    "%.0f",
+                    minAmount
+                )
+            } ~ ${String.format("%.0f", maxAmount)}"
+
             else -> "N/A"
         }
     }
