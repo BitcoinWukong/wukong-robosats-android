@@ -130,6 +130,9 @@ class SharedViewModel(
         if (_selectedToken.value == robot.token) {
             updateSelectedRobotInternal(robot)
         }
+        if (robot.activeOrderId != null) {
+            getOrderDetails(robot, robot.activeOrderId)
+        }
     }
 
     private fun loadTokens(): Set<String> {
