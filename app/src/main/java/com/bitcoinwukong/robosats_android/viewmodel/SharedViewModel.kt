@@ -57,17 +57,14 @@ class SharedViewModel(
     }
 
     init {
-        refreshRobotsInfo()
         startAutoFetch()
     }
 
     private fun startAutoFetch() {
         viewModelScope.launch {
             while (isActive) {
+                refreshRobotsInfo()
                 fetchOrders()
-                if (_selectedRobot.value != null) {
-                    fetchRobotInfo(_selectedRobot.value!!.token)
-                }
                 delay(60000) // 1 minute delay
             }
         }
@@ -239,8 +236,15 @@ class SharedViewModel(
     }
 
     private fun updateSelectedRobot(token: String?) {
-        _selectedToken.value = token ?: ""
-        val robot = token?.let { _robotsInfoMap.value?.get(it) }
+        val safeToken = token.orEmpty()
+        _selectedToken.value = safeToken
+        val robot = _robotsInfoMap.value?.get(safeToken)
+
+        if (safeToken.isNotEmpty()) {
+            if (robot == null || robot.errorMessage != null) {
+                fetchRobotInfo(safeToken)  // safeToken is guaranteed to be non-null here
+            }
+        }
         updateSelectedRobotInternal(robot)
     }
 

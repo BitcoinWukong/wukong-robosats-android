@@ -6,14 +6,15 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -28,7 +29,6 @@ import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
-import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
 @Composable
@@ -46,7 +46,9 @@ fun OrderDetailsContent(
         Text("Loading...")
     } else {
         val order = activeOrder!!
-        Column {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             if (order.status == OrderStatus.PUBLIC) {
                 OrderDetailsSection(order)
 
@@ -56,6 +58,7 @@ fun OrderDetailsContent(
                     Text("Pause Order")
                 }
             } else if (order.status == OrderStatus.PAUSED) {
+                Text(text = "Order ID: ${order.id}")
                 Text("Order is now paused")
 
                 Button(onClick = {
@@ -67,14 +70,21 @@ fun OrderDetailsContent(
                 order.bondInvoice?.let { bondInvoice ->
                     Text("Waiting for maker bond:")
                     Spacer(Modifier.height(16.dp))
-                    Text(
-                        modifier = Modifier.clickable {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse("lightning:$bondInvoice")
-                            }
-                            context.startActivity(intent)
-                        }, text = bondInvoice
-                    )
+
+                    // Display the first 32 characters and the last 18 characters of the bondInvoice
+                    val displayInvoice =
+                        if (bondInvoice.length > 50) bondInvoice.take(32) + "..." + bondInvoice.takeLast(
+                            18
+                        ) else bondInvoice
+                    TextButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("lightning:$bondInvoice")
+                        }
+                        context.startActivity(intent)
+                    }) {
+                        Text(displayInvoice)
+                    }
+
                     Row(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
@@ -126,7 +136,7 @@ fun PauseOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    RobosatsAndroidTheme {
+    Row(modifier = Modifier.width(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel,
             robot1
@@ -148,7 +158,7 @@ fun ResumeOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    RobosatsAndroidTheme {
+    Row(modifier = Modifier.width(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel,
             robot1
@@ -172,7 +182,7 @@ fun WaitingForMakerBondOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    RobosatsAndroidTheme {
+    Row(modifier = Modifier.width(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel,
             robot1

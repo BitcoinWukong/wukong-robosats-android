@@ -14,6 +14,7 @@ class MockSharedViewModel(
     isUpdating: Boolean = false,
     robotTokens: Set<String> = emptySet(),
     robotsInfoMap: Map<String, Robot> = emptyMap(),
+    selectedToken: String? = null,
     selectedRobot: Robot? = null,
     activeOrder: OrderData? = null
 ) : ISharedViewModel {
@@ -21,7 +22,8 @@ class MockSharedViewModel(
 
     override val robotTokens: LiveData<Set<String>> = MutableLiveData(robotTokens)
     override val robotsInfoMap: LiveData<Map<String, Robot>> = MutableLiveData(robotsInfoMap)
-    override val selectedToken: LiveData<String> = MutableLiveData(selectedRobot?.token ?: "")
+    override val selectedToken: LiveData<String> =
+        MutableLiveData(selectedToken ?: selectedRobot?.token ?: "")
     override val selectedRobot: LiveData<Robot?> = MutableLiveData(selectedRobot)
     override val activeOrder: LiveData<OrderData?> = MutableLiveData(activeOrder)
     override val torManagerEvents: LiveData<String> = MutableLiveData("")
