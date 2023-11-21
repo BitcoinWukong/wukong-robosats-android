@@ -158,7 +158,7 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
                 .weight(2f)
         ) {
             RobotDetails(
-                viewModel, selectedRobot
+                viewModel, selectedToken, selectedRobot
             ) { showCreateOrderDialog = true }
         }
     }

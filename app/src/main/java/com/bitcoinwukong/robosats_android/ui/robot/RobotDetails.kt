@@ -22,25 +22,32 @@ import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 @Composable
 fun RobotDetails(
     viewModel: ISharedViewModel,
-    robot: Robot?,
+    selectedToken: String,
+    selectedRobot: Robot?,
     onClickCreateOrder: () -> Unit
 ) {
     Box(
         contentAlignment = Alignment.Center, // Center content
         modifier = Modifier.fillMaxSize()
     ) {
-        if (robot == null) {
-            CircularProgressIndicator()
-            return
-        } else if (robot.errorMessage != null) {
-            Text(text = robot.errorMessage)
-            return
-        } else if (robot.activeOrderId == null) {
-            Button(onClick = onClickCreateOrder, enabled = true) {
-                Text("Create Order")
+        when {
+            selectedToken.isEmpty() -> {
+                Text("No active robot")
             }
-        } else {
-            OrderDetailsContent(viewModel, robot)
+            selectedRobot == null -> {
+                CircularProgressIndicator()
+            }
+            selectedRobot.errorMessage != null -> {
+                Text(text = selectedRobot.errorMessage)
+            }
+            selectedRobot.activeOrderId == null -> {
+                Button(onClick = onClickCreateOrder, enabled = true) {
+                    Text("Create Order")
+                }
+            }
+            else -> {
+                OrderDetailsContent(viewModel, selectedRobot)
+            }
         }
     }
 }
@@ -49,7 +56,7 @@ fun RobotDetails(
 @Composable
 fun RobotDetailsPreviewLoading() {
     Box(modifier = Modifier.size(300.dp)) {
-        RobotDetails(MockSharedViewModel(), null) {}
+        RobotDetails(MockSharedViewModel(), "",null) {}
     }
 }
 
@@ -61,7 +68,7 @@ fun RobotDetailsPreviewErrorMessage() {
             "token1",
             errorMessage = "Unable to load robot"
         )
-        RobotDetails(MockSharedViewModel(), robot) {}
+        RobotDetails(MockSharedViewModel(), "token1", robot) {}
     }
 }
 
@@ -73,7 +80,7 @@ fun RobotDetailsPreviewNoActiveOrder() {
             "token1",
             nickname = "robot1",
         )
-        RobotDetails(MockSharedViewModel(), robot1) {}
+        RobotDetails(MockSharedViewModel(), "token1", robot1) {}
     }
 }
 
@@ -93,6 +100,6 @@ fun RobotDetailsPreviewActiveOrder() {
             activeOrderId = 91593,
         )
         val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-        RobotDetails(mockSharedViewModel, robot1) {}
+        RobotDetails(mockSharedViewModel, "token1", robot1) {}
     }
 }
