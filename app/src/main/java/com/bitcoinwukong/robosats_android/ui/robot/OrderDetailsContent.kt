@@ -103,6 +103,7 @@ fun OrderDetailsSection(order: OrderData) {
         Text(text = "Currency: ${order.currency}")
         Text(text = "Amount: ${order.formattedAmount()}")
         Text(text = "Payment Method: ${order.paymentMethod}")
+        Text(text = "Premium: ${order.premium}%")
     }
 }
 
@@ -115,6 +116,7 @@ fun PauseOrderDetailsPreview() {
         type = OrderType.BUY,
         amount = 21.0,
         currency = Currency.USD,
+        premium = 3.0,
         status = OrderStatus.PUBLIC
     )
     val robot1 = Robot(
