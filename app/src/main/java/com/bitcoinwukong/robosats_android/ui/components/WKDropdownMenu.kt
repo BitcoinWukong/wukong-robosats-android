@@ -25,15 +25,15 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 fun <T> WKDropdownMenu(
     label: String,
     items: List<T>,
-    selectedItem: T,
+    selectedItem: T?,
     onItemSelected: (T) -> Unit
-    ) {
+) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedText by remember { mutableStateOf(selectedItem.toString()) }
+    var selectedText by remember { mutableStateOf(selectedItem?.toString() ?: " ") }
 
     Box {
         OutlinedTextField(
-            value = selectedItem.toString(),
+            value = selectedItem?.toString() ?: " ",
             onValueChange = { /* No action needed here */ },
             readOnly = true, // Makes the TextField not editable
             trailingIcon = {
@@ -80,5 +80,16 @@ fun WKDropdownMenuPreview() {
         items = OrderType.values().toList(),
         selectedItem = selectedOrderType,
         onItemSelected = { selectedOrderType = it }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun WKDropdownMenuPreview_EmptyList() {
+    WKDropdownMenu(
+        label = "Order Type",
+        items = emptyList(),
+        selectedItem = null,
+        onItemSelected = { }
     )
 }

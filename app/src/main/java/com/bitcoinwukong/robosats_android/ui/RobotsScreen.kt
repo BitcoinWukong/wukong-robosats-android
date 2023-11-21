@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -35,18 +33,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.order.CreateOrderDialog
 import com.bitcoinwukong.robosats_android.ui.robot.RobotDetails
-import com.bitcoinwukong.robosats_android.ui.robot.RobotListItem
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
-
-//@Composable
-//fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
-//    CreateOrderContent({ orderType, currency, amount, paymentMethod ->
-//        viewModel.createOrder(orderType, currency, amount, paymentMethod)
-//    })
-//}
+import com.bitcoinwukong.robosats_android.viewmodel.RobotDropdownItem
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -120,20 +112,20 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // LazyColumn for the list of tokens
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f) // make the LazyColumn take up all space above the buttons
-                .padding(vertical = 4.dp)
-        ) {
-            // Inside the LazyColumn in RobotsScreen
-            items(robotTokens.toList()) { token ->
-                RobotListItem(token, robotsInfoMap[token], selectedToken) { robotToken ->
-                    viewModel.selectRobot(robotToken)
-                }
-            }
+        // Convert robotTokens to a list of RobotDropdownItem
+        val dropdownItems = robotTokens.map { token ->
+            RobotDropdownItem(token, robotsInfoMap[token])
         }
+        val selectedDropdownItem = dropdownItems.find { it.token == selectedToken }
+
+        WKDropdownMenu(
+            label = "Robots",
+            items = dropdownItems,
+            selectedItem = selectedDropdownItem,
+            onItemSelected = { robotDropdownItem ->
+                viewModel.selectRobot(robotDropdownItem.token)
+            }
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -187,6 +179,20 @@ fun RobotsScreenPreview() {
             robotTokens = robotTokens,
             robotsInfoMap = robotsInfoMap,
             selectedRobot = robot1
+        )
+        RobotsScreen(viewModel)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RobotsScreenPreview_Loading() {
+    RobosatsAndroidTheme {
+        val robotTokens = setOf("token1", "token2", "token3")
+        val viewModel = MockSharedViewModel(
+            robotTokens = robotTokens,
+            robotsInfoMap = emptyMap(),
+            selectedToken = "token1"
         )
         RobotsScreen(viewModel)
     }
