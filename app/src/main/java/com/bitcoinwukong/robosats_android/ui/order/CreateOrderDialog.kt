@@ -46,7 +46,7 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
     var selectedOrderType by remember { mutableStateOf(OrderType.BUY) }
     var selectedCurrency by remember { mutableStateOf(Currency.USD) }
     var amount by remember { mutableStateOf("") }
-    var selectedPaymentMethod by remember { mutableStateOf(PaymentMethod.AMAZON_USA_GIFTCARD) }
+    var selectedPaymentMethod by remember { mutableStateOf(PaymentMethod.USDT) }
     var customPaymentMethod by remember {
         mutableStateOf("")
     }

@@ -79,17 +79,10 @@ class SharedViewModel(
             result.onSuccess { ordersList ->
                 _orders.postValue(ordersList)
                 _lastUpdated.postValue(LocalDateTime.now())
-                updateOrdersCache(ordersList)
                 Log.d("SharedViewModel", "Orders update completed: $ordersList")
             }.onFailure { e ->
                 Log.e("SharedViewModel", "Error fetching orders: ${e.message}")
             }
-        }
-    }
-
-    private fun updateOrdersCache(orders: List<OrderData>) {
-        orders.forEach { order ->
-            _ordersCache[order.id!!] = order
         }
     }
 
