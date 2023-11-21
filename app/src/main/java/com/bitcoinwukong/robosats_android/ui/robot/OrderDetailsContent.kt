@@ -58,6 +58,7 @@ fun OrderDetailsContent(
                     Text("Pause Order")
                 }
             } else if (order.status == OrderStatus.PAUSED) {
+                Text(text = "Order ID: ${order.id}")
                 Text("Order is now paused")
 
                 Button(onClick = {
