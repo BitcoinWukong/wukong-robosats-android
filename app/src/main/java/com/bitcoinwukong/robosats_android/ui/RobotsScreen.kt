@@ -73,7 +73,6 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
 
@@ -96,16 +95,16 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
             )
         )
 
-        // Add Button
         Button(
+            modifier = Modifier
+                .padding(8.dp),
             onClick = {
                 if (textFieldValue.isNotBlank()) {
                     viewModel.addRobot(textFieldValue)
                     textFieldValue = "" // Clear the text field
                     keyboardController?.hide() // Dismiss the keyboard
                 }
-            },
-            modifier = Modifier.padding(top = 8.dp)
+            }
         ) {
             Text("Recover")
         }
@@ -119,7 +118,7 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
         val selectedDropdownItem = dropdownItems.find { it.token == selectedToken }
 
         WKDropdownMenu(
-            label = "Robots",
+            label = "Active Robot",
             items = dropdownItems,
             selectedItem = selectedDropdownItem,
             onItemSelected = { robotDropdownItem ->
@@ -128,7 +127,9 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
