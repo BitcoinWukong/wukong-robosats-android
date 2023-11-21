@@ -1,5 +1,8 @@
 package com.bitcoinwukong.robosats_android.ui.order
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -7,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Currency
@@ -26,6 +31,7 @@ fun OrderDetailsDialog(
     val orderId = robot.activeOrderId ?: return
     viewModel.getOrderDetails(robot, orderId)
     val activeOrder by viewModel.activeOrder.observeAsState(null)
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = { onDismiss() },
@@ -53,7 +59,16 @@ fun OrderDetailsDialog(
                             Text("Resume Order")
                         }
                     } else if (order.status == OrderStatus.WAITING_FOR_MAKER_BOND) {
-                        order.bondInvoice?.let { Text(it) }
+                        order.bondInvoice?.let { bondInvoice ->
+                            Text(
+                                modifier = Modifier.clickable {
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        data = Uri.parse("lightning:$bondInvoice")
+                                    }
+                                    context.startActivity(intent)
+                                }, text = bondInvoice
+                            )
+                        }
                     } else {
                         Text("Unknown order status")
                     }
