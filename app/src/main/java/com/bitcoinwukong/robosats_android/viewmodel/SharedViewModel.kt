@@ -207,7 +207,10 @@ class SharedViewModel(
     }
 
     override fun pauseResumeOrder(robot: Robot, orderId: Int) {
+        // Invalidate current active order and cache
         _activeOrder.value = null
+        _ordersCache.remove(orderId)
+
         viewModelScope.launch {
             val result = torRepository.performOrderAction(robot.token, orderId, "pause")
             result.onSuccess {
