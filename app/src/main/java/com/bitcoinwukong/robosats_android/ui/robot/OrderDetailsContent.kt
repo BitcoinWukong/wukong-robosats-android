@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -67,14 +67,21 @@ fun OrderDetailsContent(
                 order.bondInvoice?.let { bondInvoice ->
                     Text("Waiting for maker bond:")
                     Spacer(Modifier.height(16.dp))
-                    Text(
-                        modifier = Modifier.clickable {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse("lightning:$bondInvoice")
-                            }
-                            context.startActivity(intent)
-                        }, text = bondInvoice
-                    )
+
+                    // Display the first 22 characters and the last 8 characters of the bondInvoice
+                    val displayInvoice =
+                        if (bondInvoice.length > 30) bondInvoice.take(22) + "..." + bondInvoice.takeLast(
+                            8
+                        ) else bondInvoice
+                    TextButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("lightning:$bondInvoice")
+                        }
+                        context.startActivity(intent)
+                    }) {
+                        Text(displayInvoice)
+                    }
+
                     Row(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
