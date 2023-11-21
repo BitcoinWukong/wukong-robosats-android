@@ -11,25 +11,25 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.bitcoinwukong.robosats_android.model.OrderType
 
 
 @Composable
 fun <T> WKDropdownMenu(
-    label: String,
-    items: List<T>,
-    selectedItem: T?,
-    onItemSelected: (T) -> Unit
+    label: String, items: List<T>, selectedItem: T?, onItemSelected: (T) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedText by remember { mutableStateOf(selectedItem?.toString() ?: " ") }
+    val isDropdownEnabled = items.isNotEmpty()
 
     Box {
         OutlinedTextField(
@@ -39,34 +39,37 @@ fun <T> WKDropdownMenu(
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Dropdown Icon"
+                    contentDescription = "Dropdown Icon",
+                    tint = if (isDropdownEnabled) MaterialTheme.colorScheme.onSurface
+                    else Color.Gray
                 )
             },
             label = { Text(label) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isDropdownEnabled
         )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items.forEach { item ->
-                DropdownMenuItem(
-                    onClick = {
+        if (isDropdownEnabled) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items.forEach { item ->
+                    DropdownMenuItem(onClick = {
                         selectedText = item.toString()
                         onItemSelected(item)
                         expanded = false
+                    }) {
+                        Text(text = item.toString())
                     }
-                ) {
-                    Text(text = item.toString())
                 }
             }
+            Spacer(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(onClick = { expanded = true })
+            )
         }
-        Spacer(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable(onClick = { expanded = true })
-        )
     }
 }
 
