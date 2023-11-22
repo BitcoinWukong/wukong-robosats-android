@@ -412,10 +412,12 @@ class TorRepository(val torManager: ITorManager) {
                 }
 
                 // Make a call to getInfo to test the connection
+                torManager.addLine("---------------------------------")
                 torManager.addLine("Testing connection to RoboSats")
                 val infoResult = getInfo(checkTorConnection = false)
                 if (infoResult.isFailure) {
                     val errorMessage = "Failed to establish a connection via Tor. Restarting Tor..."
+                    torManager.addLine("---------------------------------")
                     Log.e(TAG, errorMessage)
                     torManager.addLine(errorMessage)
                     torManager.restart()

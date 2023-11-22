@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.net.InetSocketAddress
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 class TorManager(private val application: Application)  : ITorManager {
@@ -176,10 +178,13 @@ class TorManager(private val application: Application)  : ITorManager {
 
         fun addLine(line: String) {
             synchronized(this) {
+                val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                val timestampedLine = "$timestamp: $line"
+
                 if (events.size > 49) {
                     events.removeAt(0)
                 }
-                events.add(line)
+                events.add(timestampedLine)
                 Log.d("TorListener", line)
                 _eventLines.postValue(events.joinToString("\n"))
             }
