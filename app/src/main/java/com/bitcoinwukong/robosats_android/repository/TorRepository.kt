@@ -18,7 +18,10 @@ import io.matthewnelson.kmp.tor.manager.common.event.TorManagerEvent
 import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import io.matthewnelson.kmp.tor.manager.common.state.isOn
 import io.matthewnelson.kmp.tor.manager.common.state.isStarting
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -42,6 +45,9 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
     private val _torState = MutableLiveData<TorState>(TorState.Off)
     val torState: LiveData<TorState> get() = _torState
+
+    // Shared Deferred for waiting for Tor
+    private var waitingForTor: Deferred<Unit>? = null
 
     fun restartTor() {
         torManager.restart()
@@ -84,10 +90,14 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         onSuccess: (String) -> Unit,
         onFailure: (String) -> Unit,
         maxRetries: Int = 3,
-        retryDelayMillis: Long = 5000 // 5 seconds
+        retryDelayMillis: Long = 5000, // 5 seconds,
+        checkTorConnection: Boolean = true
     ) {
         Log.d(TAG, "Preparing to make API request to $url with headers: $headers")
-        waitForTor()
+        if (checkTorConnection) {
+            Log.d(TAG, "Waiting for tor for API request to $url")
+            waitForTor()
+        }
 
         val httpClient = createHttpClient()
 
@@ -110,7 +120,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
                         onSuccess(responseBody)
                         return
                     } else {
-                        val errorMessage = "Failed with response code: ${response.code}, ${response.message}"
+                        val errorMessage =
+                            "Failed with response code: ${response.code}, ${response.message}"
                         val responseBody = response.body?.string().orEmpty()
                         Log.e(TAG, errorMessage)
                         Log.e(TAG, "response body: $responseBody")
@@ -124,20 +135,21 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
                     onFailure(e.message ?: "Unknown error")
                     return
                 }
-                Log.d(TAG, "Retrying API request... Attempt: ${it+1}")
+                Log.d(TAG, "Retrying API request... Attempt: ${it + 1}")
                 delay(retryDelayMillis) // Wait before retrying
             }
         }
         onFailure("Failed after $maxRetries attempts")
     }
 
-    suspend fun makeGeneralRequest(
+    private suspend fun makeGeneralRequest(
         api: String,
         token: String? = null,
         queryParams: Map<String, String> = emptyMap(),
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
-        testNet: Boolean = false
+        testNet: Boolean = false,
+        checkTorConnection: Boolean = true
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
         val host = if (testNet) ROBOSATS_TESTNET else ROBOSATS_MAINNET
 
@@ -187,7 +199,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
                 onFailure = { errorMessage ->
                     Log.e(TAG, "Error in makeGeneralRequest: $errorMessage")
                     throw IOException(errorMessage)
-                }
+                },
+                checkTorConnection = checkTorConnection
             )
             Result.success(jsonObject ?: throw IllegalStateException("No response data"))
         } catch (e: Exception) {
@@ -197,7 +210,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
     suspend fun getInfo(): Result<JSONObject> = withContext(Dispatchers.IO) {
         makeGeneralRequest(
-            api = "info"
+            api = "info",
+            checkTorConnection = false
         )
     }
 
@@ -246,13 +260,17 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         )
 
         if (hasRange) {
-            formBodyParams["min_amount"] = minAmount ?: throw IllegalArgumentException("minAmount is required when hasRange is true")
-            formBodyParams["max_amount"] = maxAmount ?: throw IllegalArgumentException("maxAmount is required when hasRange is true")
+            formBodyParams["min_amount"] = minAmount
+                ?: throw IllegalArgumentException("minAmount is required when hasRange is true")
+            formBodyParams["max_amount"] = maxAmount
+                ?: throw IllegalArgumentException("maxAmount is required when hasRange is true")
         } else {
-            formBodyParams["amount"] = amount ?: throw IllegalArgumentException("amount is required when hasRange is false")
+            formBodyParams["amount"] = amount
+                ?: throw IllegalArgumentException("amount is required when hasRange is false")
         }
         if (isExplicit) {
-            formBodyParams["satoshis"] = satoshis?.toString() ?: throw IllegalArgumentException("satoshis is required when isExplicit is true")
+            formBodyParams["satoshis"] = satoshis?.toString()
+                ?: throw IllegalArgumentException("satoshis is required when isExplicit is true")
         }
 
         latitude?.let { formBodyParams["latitude"] = it }
@@ -268,7 +286,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
     suspend fun getOrderDetails(
         token: String,
-        orderId: Int): Result<OrderData> = withContext(Dispatchers.IO) {
+        orderId: Int
+    ): Result<OrderData> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getOrderDetails: $orderId")
         makeGeneralRequest(
             api = "order",
@@ -327,6 +346,7 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
             Result.failure(e)
         }
     }
+
     suspend fun listOrders(): Result<List<OrderData>> = withContext(Dispatchers.IO) {
         if (isCurrentlyUpdating.getAndSet(true)) {
             Log.d(TAG, "Update already in progress. Fetch aborted.")
@@ -355,7 +375,9 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
                     for (i in 0 until jsonArray.length()) {
                         val orderJson = jsonArray.getJSONObject(i)
                         val orderData = OrderData.fromJson(orderJson)
-                        if (orderData.type == OrderType.BUY) buyOrders.add(orderData) else sellOrders.add(orderData)
+                        if (orderData.type == OrderType.BUY) buyOrders.add(orderData) else sellOrders.add(
+                            orderData
+                        )
                     }
 
                     // Sorting by premium in descending order
@@ -380,15 +402,38 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         }
     }
 
-    private suspend fun waitForTor() {
-        while (!torManager.state.isOn()) {
-            Log.d(TAG, "Waiting for Tor to turn on...")
-            if (!torManager.state.isStarting()) {
-                torManager.start()
-            }
-            delay(5000) // Wait for 5 seconds before checking again
+    private suspend fun waitForTor() = coroutineScope {
+        // If there's already a Deferred, wait for it
+        waitingForTor?.let {
+            it.await()
+            return@coroutineScope
         }
-        Log.d(TAG, "Tor is now on.")
+
+        // If this is the first call, create a new Deferred
+        waitingForTor = async {
+            while (!torManager.state.isOn()) {
+                Log.d(TAG, "Waiting for Tor to turn on...")
+                if (!torManager.state.isStarting()) {
+                    torManager.start()
+                }
+
+                // Make a call to getInfo to test the connection
+                val infoResult = getInfo()
+                if (infoResult.isFailure) {
+                    Log.e(TAG, "Failed to establish a connection via Tor. Restarting Tor.")
+                    torManager.restart()
+                }
+
+                delay(3000) // Wait for 3 seconds before checking again
+            }
+            Log.d(TAG, "Tor is now on.")
+        }
+
+        // Await the newly created Deferred
+        waitingForTor?.await()
+
+        // Reset the Deferred to null after it's done
+        waitingForTor = null
     }
 
     private fun isRetryableError(e: IOException): Boolean {
