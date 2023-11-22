@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,40 +43,46 @@ fun OrderDetailsContent(
     val orderId = robot.activeOrderId ?: return
     val activeOrder by viewModel.activeOrder.observeAsState(null)
 
-    if (activeOrder == null) {
-        LoadingContent(orderId)
-        return
-    }
-
-    val order = activeOrder ?: return
     Column(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth(),
     ) {
-        OrderStatusContent(order, viewModel, robot, orderId)
+        if (activeOrder == null) {
+            LoadingContent(orderId)
+        } else {
+            val order = activeOrder ?: return
+            OrderStatusContent(order, viewModel, robot, orderId)
+            RefreshButton { viewModel.getOrderDetails(robot, orderId) }
+        }
+    }
+}
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End // Aligns the child to the end (right)
+@Composable
+private fun RefreshButton(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End // Keep the Refresh button to the end (right)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier.padding(8.dp)
         ) {
-            Button(onClick = {
-                viewModel.getOrderDetails(robot, orderId)
-            }) {
-                Text("Refresh")
-            }
+            Text("Refresh")
         }
     }
 }
 
 @Composable
 private fun OrderStatusContent(
-    order: OrderData,
-    viewModel: ISharedViewModel,
-    robot: Robot,
-    orderId: Int
+    order: OrderData, viewModel: ISharedViewModel, robot: Robot, orderId: Int
 ) {
-    Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(bottom = 8.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start // Keep the Refresh button to the end (right)
+    ) {
+        Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(bottom = 8.dp))
+    }
 
     when {
         order.isWaitingForSellerCollateral() && order.isSeller() -> DisplayWaitingForSellerCollateralDetails(
@@ -94,24 +101,23 @@ private fun OrderStatusContent(
 
 @Composable
 private fun LoadingContent(orderId: Int) {
-    Column(
+    Box(
         modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text("Loading order of ID $orderId...")
-        Spacer(modifier = Modifier.height(8.dp))
-        CircularProgressIndicator()
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Loading order of ID $orderId...")
+            Spacer(modifier = Modifier.height(8.dp))
+            CircularProgressIndicator()
+        }
     }
 }
 
 @Composable
 private fun DisplayPublicOrderDetails(
-    viewModel: ISharedViewModel,
-    robot: Robot,
-    order: OrderData,
-    orderId: Int
+    viewModel: ISharedViewModel, robot: Robot, order: OrderData, orderId: Int
 ) {
     OrderDetailsSection(order)
     Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
@@ -121,9 +127,7 @@ private fun DisplayPublicOrderDetails(
 
 @Composable
 private fun DisplayPausedOrderDetails(
-    viewModel: ISharedViewModel,
-    robot: Robot,
-    orderId: Int
+    viewModel: ISharedViewModel, robot: Robot, orderId: Int
 ) {
     Text("Order is now paused")
     Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
@@ -167,18 +171,11 @@ private fun InvoiceDisplaySection(invoice: String) {
         Text(displayInvoice)
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth() // Fill the maximum width available
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.Center // Center the content horizontally
-    ) {
-        Button(onClick = {
-            val clip = ClipData.newPlainText("invoice", invoice)
-            clipboardManager.setPrimaryClip(clip)
-        }) {
-            Text("Copy Invoice")
-        }
+    Button(onClick = {
+        val clip = ClipData.newPlainText("invoice", invoice)
+        clipboardManager.setPrimaryClip(clip)
+    }) {
+        Text("Copy")
     }
 }
 
@@ -190,7 +187,9 @@ private fun DisplayUnknownStatus(order: OrderData) {
 
 @Composable
 fun OrderDetailsSection(order: OrderData) {
-    Column(modifier = Modifier.padding(8.dp)) {
+    Column(modifier = Modifier
+        .padding(8.dp)
+        .fillMaxWidth()) {
         Text(text = "Type: ${order.type}")
         Text(text = "Currency: ${order.currency}")
         Text(text = "Amount: ${order.formattedAmount()}")
@@ -199,6 +198,21 @@ fun OrderDetailsSection(order: OrderData) {
     }
 }
 
+
+@Preview(showBackground = true)
+@Composable
+fun LoadingOrderDetailsPreview() {
+    val robot1 = Robot(
+        "token1",
+        activeOrderId = 91593,
+    )
+    val mockSharedViewModel = MockSharedViewModel(emptyList(), false, activeOrder = null)
+    Row(modifier = Modifier.width(350.dp)) {
+        OrderDetailsContent(
+            mockSharedViewModel, robot1
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
@@ -218,8 +232,7 @@ fun PauseOrderDetailsPreview() {
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     Row(modifier = Modifier.width(350.dp)) {
         OrderDetailsContent(
-            mockSharedViewModel,
-            robot1
+            mockSharedViewModel, robot1
         )
     }
 }
@@ -228,10 +241,7 @@ fun PauseOrderDetailsPreview() {
 @Composable
 fun ResumeOrderDetailsPreview() {
     val order = OrderData(
-        id = 91593,
-        type = OrderType.BUY,
-        currency = Currency.USD,
-        status = OrderStatus.PAUSED
+        id = 91593, type = OrderType.BUY, currency = Currency.USD, status = OrderStatus.PAUSED
     )
     val robot1 = Robot(
         "token1",
@@ -240,8 +250,7 @@ fun ResumeOrderDetailsPreview() {
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     Row(modifier = Modifier.width(350.dp)) {
         OrderDetailsContent(
-            mockSharedViewModel,
-            robot1
+            mockSharedViewModel, robot1
         )
     }
 }
@@ -264,8 +273,7 @@ fun WaitingForMakerBondOrderDetailsPreview() {
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     Row(modifier = Modifier.width(350.dp)) {
         OrderDetailsContent(
-            mockSharedViewModel,
-            robot1
+            mockSharedViewModel, robot1
         )
     }
 }
