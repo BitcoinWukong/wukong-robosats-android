@@ -6,9 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -18,7 +20,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,78 +40,115 @@ fun OrderDetailsContent(
     val orderId = robot.activeOrderId ?: return
     val activeOrder by viewModel.activeOrder.observeAsState(null)
 
-    val context = LocalContext.current
-    val clipboardManager =
-        LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     if (activeOrder == null) {
         Text("Loading...")
-    } else {
-        val order = activeOrder!!
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            if (order.status == OrderStatus.PUBLIC) {
-                OrderDetailsSection(order)
+        return
+    }
 
-                Button(onClick = {
-                    viewModel.pauseResumeOrder(robot, orderId)
-                }) {
-                    Text("Pause Order")
-                }
-            } else if (order.status == OrderStatus.PAUSED) {
-                Text(text = "Order ID: ${order.id}")
-                Text("Order is now paused")
+    val order = activeOrder ?: return
+    Column(
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(0.dp, 8.dp))
 
-                Button(onClick = {
-                    viewModel.pauseResumeOrder(robot, orderId)
-                }) {
-                    Text("Resume Order")
-                }
-            } else if (order.status == OrderStatus.WAITING_FOR_MAKER_BOND) {
-                order.bondInvoice?.let { bondInvoice ->
-                    Text("Waiting for maker bond:")
-                    Spacer(Modifier.height(16.dp))
-
-                    // Display the first 32 characters and the last 18 characters of the bondInvoice
-                    val displayInvoice =
-                        if (bondInvoice.length > 50) bondInvoice.take(32) + "..." + bondInvoice.takeLast(
-                            18
-                        ) else bondInvoice
-                    TextButton(onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("lightning:$bondInvoice")
-                        }
-                        context.startActivity(intent)
-                    }) {
-                        Text(displayInvoice)
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(16.dp)
-
-                    ) {
-                        Button(onClick = {
-                            val clip = ClipData.newPlainText("invoice", bondInvoice)
-                            clipboardManager.setPrimaryClip(clip)
-                        }) {
-                            Text("Copy Invoice")
-                        }
-                    }
-                }
-            } else {
-                Text("Unknown order status")
-                Log.d("Order", "Unkown order status, order data: $activeOrder")
+        if ((order.isWaitingForSellerCollateral()) && (order.isSeller())) {
+            DisplayWaitingForSellerCollateralDetails(order)
+        } else if (order.isChatting()) {
+            Text("Order in progress...")
+        } else {
+            when (order.status) {
+                OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
+                OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
+                OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
+                else -> DisplayUnknownStatus(order)
             }
         }
     }
 }
 
 @Composable
+private fun DisplayPublicOrderDetails(
+    viewModel: ISharedViewModel,
+    robot: Robot,
+    order: OrderData,
+    orderId: Int
+) {
+    OrderDetailsSection(order)
+    Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
+        Text("Pause Order")
+    }
+}
+
+@Composable
+private fun DisplayPausedOrderDetails(
+    viewModel: ISharedViewModel,
+    robot: Robot,
+    orderId: Int
+) {
+    Text("Order is now paused")
+    Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
+        Text("Resume Order")
+    }
+}
+
+@Composable
+private fun DisplayWaitingForMakerBondDetails(order: OrderData) {
+    order.bondInvoice?.let { bondInvoice ->
+        Text("Waiting for maker bond:")
+        Spacer(Modifier.height(16.dp))
+        InvoiceDisplaySection(bondInvoice)
+    }
+}
+
+@Composable
+private fun DisplayWaitingForSellerCollateralDetails(order: OrderData) {
+    order.escrowInvoice?.let { escrowInvoice ->
+        Text("Waiting for collateral of ${order.escrowSats} sats:")
+        Spacer(Modifier.height(16.dp))
+        InvoiceDisplaySection(escrowInvoice)
+    }
+}
+
+@Composable
+private fun InvoiceDisplaySection(invoice: String) {
+    val context = LocalContext.current
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+    // Display Invoice
+    val displayInvoice =
+        if (invoice.length > 50) invoice.take(32) + "..." + invoice.takeLast(18) else invoice
+    TextButton(onClick = {
+        val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("lightning:$invoice") }
+        context.startActivity(intent)
+    }) {
+        Text(displayInvoice)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth() // Fill the maximum width available
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.Center // Center the content horizontally
+    ) {
+        Button(onClick = {
+            val clip = ClipData.newPlainText("invoice", invoice)
+            clipboardManager.setPrimaryClip(clip)
+        }) {
+            Text("Copy Invoice")
+        }
+    }
+
+}
+
+@Composable
+private fun DisplayUnknownStatus(order: OrderData) {
+    Text("Unknown order status")
+    Log.d("Order", "Unknown order status, order data: $order")
+}
+
+@Composable
 fun OrderDetailsSection(order: OrderData) {
     Column(modifier = Modifier.padding(8.dp)) {
-        Text(text = "Order ID: ${order.id ?: "Not available"}")
         Text(text = "Type: ${order.type}")
         Text(text = "Currency: ${order.currency}")
         Text(text = "Amount: ${order.formattedAmount()}")

@@ -29,7 +29,12 @@ data class OrderData(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val bondInvoice: String? = null,
-    val bondSats: Int? = null
+    val bondSats: Int? = null,
+    val escrowInvoice: String? = null,
+    val escrowSats: Int? = null,
+    val isMaker: Boolean = false,
+    val isTaker: Boolean = false,
+    val chatLastIndex: Int? = null,
 ) {
     companion object {
         fun fromJson(jsonObject: JSONObject): OrderData {
@@ -72,8 +77,27 @@ data class OrderData(
                 longitude = jsonObject.optString("longitude").toDoubleOrNull(),
                 bondInvoice = jsonObject.optString("bond_invoice", "").takeIf { it.isNotEmpty() },
                 bondSats = jsonObject.optInt("bond_satoshis", -1).takeIf { it != -1 },
+                escrowInvoice = jsonObject.optString("escrow_invoice", "")
+                    .takeIf { it.isNotEmpty() },
+                escrowSats = jsonObject.optInt("escrow_satoshis", -1).takeIf { it != -1 },
+                isMaker = jsonObject.optBoolean("is_maker", false),
+                isTaker = jsonObject.optBoolean("is_taker", false),
+                chatLastIndex = jsonObject.optInt("chat_last_index", -1).takeIf { it != -1 },
             )
         }
+    }
+
+    fun isChatting(): Boolean {
+        return (status == OrderStatus.SENDING_FIAT_IN_CHATROOM || status == OrderStatus.FIAT_SENT_IN_CHATROOM)
+    }
+
+    fun isWaitingForSellerCollateral(): Boolean {
+        return (status == OrderStatus.WAITING_FOR_TRADE_COLLATERAL_AND_BUYER_INVOICE
+                || status == OrderStatus.WAITING_ONLY_FOR_SELLER_TRADE_COLLATERAL)
+    }
+
+    fun isSeller(): Boolean {
+        return (type == OrderType.SELL && isMaker) || (type == OrderType.BUY && isTaker)
     }
 
     fun formattedAmount(): String {
