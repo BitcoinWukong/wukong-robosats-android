@@ -13,7 +13,6 @@ import com.bitcoinwukong.robosats_android.utils.ROBOSATS_MAINNET
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_TESTNET
 import com.bitcoinwukong.robosats_android.utils.TOR_SOCKS_PORT
 import com.bitcoinwukong.robosats_android.utils.hashTokenAsBase91
-import io.matthewnelson.kmp.tor.manager.common.state.isOn
 import io.matthewnelson.kmp.tor.manager.common.state.isStarting
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -397,7 +396,7 @@ class TorRepository(val torManager: ITorManager) {
 
         // If this is the first call, create a new Deferred
         waitingForTor = async {
-            while (!torManager.state.isOn() || _isTorReady.value == false) {
+            while (!torManager.state.isBootstrapped || _isTorReady.value == false) {
                 _isTorReady.postValue(false)
 
                 Log.d(TAG, "Waiting for Tor to turn on...")
@@ -406,7 +405,7 @@ class TorRepository(val torManager: ITorManager) {
                 }
 
                 var waitedSeconds = 0
-                while (!torManager.state.isOn() && waitedSeconds < 20) {
+                while (!torManager.state.isBootstrapped && waitedSeconds < 20) {
                     delay(1000) // Wait for 1 seconds before checking again
                     waitedSeconds += 1
                     torManager.addLine("Still waiting for Tor to turn on...")
