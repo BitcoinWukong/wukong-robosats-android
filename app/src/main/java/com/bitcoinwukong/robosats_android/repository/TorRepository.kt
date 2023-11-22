@@ -75,6 +75,7 @@ class TorRepository(val torManager: ITorManager) {
         checkTorConnection: Boolean = true
     ) {
         Log.d(TAG, "Preparing to make API request to $url with headers: $headers")
+
         if (checkTorConnection) {
             Log.d(TAG, "Waiting for tor for API request to $url")
             waitForTor()
@@ -90,12 +91,14 @@ class TorRepository(val torManager: ITorManager) {
             }
         }
         val request = requestBuilder.build()
-        Log.d(TAG, "Request built: $request")
+        Log.i(TAG, "Request built: $request")
+        torManager.addLine("Request built: $request")
 
         repeat(maxRetries) {
             try {
                 httpClient.newCall(request).execute().use { response ->
-                    Log.d(TAG, "makeApiRequest response received: $response")
+                    Log.i(TAG, "makeApiRequest response received: $response")
+                    torManager.addLine("makeApiRequest response received: $response")
                     if (response.isSuccessful) {
                         val responseBody = response.body?.string().orEmpty()
                         onSuccess(responseBody)
@@ -105,6 +108,7 @@ class TorRepository(val torManager: ITorManager) {
                             "Failed with response code: ${response.code}, ${response.message}"
                         val responseBody = response.body?.string().orEmpty()
                         Log.e(TAG, errorMessage)
+                        torManager.addLine(errorMessage)
                         Log.e(TAG, "response body: $responseBody")
                         onFailure(errorMessage)
                         return
@@ -405,12 +409,16 @@ class TorRepository(val torManager: ITorManager) {
                 while (!torManager.state.isOn() && waitedSeconds < 20) {
                     delay(1000) // Wait for 1 seconds before checking again
                     waitedSeconds += 1
+                    torManager.addLine("Still waiting for Tor to turn on...")
                 }
 
                 // Make a call to getInfo to test the connection
+                torManager.addLine("Testing connection to RoboSats")
                 val infoResult = getInfo(checkTorConnection = false)
                 if (infoResult.isFailure) {
-                    Log.e(TAG, "Failed to establish a connection via Tor. Restarting Tor.")
+                    val errorMessage = "Failed to establish a connection via Tor. Restarting Tor..."
+                    Log.e(TAG, errorMessage)
+                    torManager.addLine(errorMessage)
                     torManager.restart()
                 } else {
                     _isTorReady.postValue(true)
