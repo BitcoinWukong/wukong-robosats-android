@@ -84,10 +84,11 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         onSuccess: (String) -> Unit,
         onFailure: (String) -> Unit,
         maxRetries: Int = 3,
-        retryDelayMillis: Long = 5000 // 5 seconds
+        retryDelayMillis: Long = 5000, // 5 seconds,
+        checkTorConnection: Boolean = true
     ) {
         Log.d(TAG, "Preparing to make API request to $url with headers: $headers")
-        waitForTor()
+        waitForTor(checkTorConnection)
 
         val httpClient = createHttpClient()
 
@@ -131,13 +132,14 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         onFailure("Failed after $maxRetries attempts")
     }
 
-    suspend fun makeGeneralRequest(
+    private suspend fun makeGeneralRequest(
         api: String,
         token: String? = null,
         queryParams: Map<String, String> = emptyMap(),
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
-        testNet: Boolean = false
+        testNet: Boolean = false,
+        checkTorConnection: Boolean = true
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
         val host = if (testNet) ROBOSATS_TESTNET else ROBOSATS_MAINNET
 
@@ -187,7 +189,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
                 onFailure = { errorMessage ->
                     Log.e(TAG, "Error in makeGeneralRequest: $errorMessage")
                     throw IOException(errorMessage)
-                }
+                },
+                checkTorConnection = checkTorConnection
             )
             Result.success(jsonObject ?: throw IllegalStateException("No response data"))
         } catch (e: Exception) {
@@ -197,7 +200,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
     suspend fun getInfo(): Result<JSONObject> = withContext(Dispatchers.IO) {
         makeGeneralRequest(
-            api = "info"
+            api = "info",
+            checkTorConnection = false
         )
     }
 
@@ -380,15 +384,26 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         }
     }
 
-    private suspend fun waitForTor() {
+    private suspend fun waitForTor(checkTorConnection: Boolean) {
         while (!torManager.state.isOn()) {
             Log.d(TAG, "Waiting for Tor to turn on...")
             if (!torManager.state.isStarting()) {
                 torManager.start()
             }
-            delay(5000) // Wait for 5 seconds before checking again
+
+            if (checkTorConnection) {
+                // Make a call to getInfo to test the connection
+                val infoResult = getInfo()
+                if (infoResult.isFailure) {
+                    Log.e(TAG, "Failed to establish a connection via Tor. Restarting Tor.")
+                    torManager.restart()
+                }
+            }
+
+            delay(3000) // Wait for 3 seconds before checking again
         }
         Log.d(TAG, "Tor is now on.")
+
     }
 
     private fun isRetryableError(e: IOException): Boolean {
