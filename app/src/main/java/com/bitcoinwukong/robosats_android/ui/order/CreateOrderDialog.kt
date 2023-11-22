@@ -1,5 +1,6 @@
 package com.bitcoinwukong.robosats_android.ui.order
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -11,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.bitcoinwukong.robosats_android.model.Currency
@@ -19,6 +21,7 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
+import com.bitcoinwukong.robosats_android.viewmodel.OrderParams
 
 @Composable
 fun CreateOrderDialog(
@@ -43,34 +46,39 @@ fun CreateOrderDialog(
 
 @Composable
 fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
-    var selectedOrderType by remember { mutableStateOf(OrderType.BUY) }
-    var selectedCurrency by remember { mutableStateOf(Currency.USD) }
-    var amount by remember { mutableStateOf("") }
-    var selectedPaymentMethod by remember { mutableStateOf(PaymentMethod.USDT) }
-    var customPaymentMethod by remember {
-        mutableStateOf("")
-    }
-    var premium by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
+    var currentParams by remember {
+        mutableStateOf(loadOrderParams(context))
+    }
 
     Column {
         WKDropdownMenu(
             label = "Order Type",
             items = OrderType.values().toList(),
-            selectedItem = selectedOrderType,
-            onItemSelected = { selectedOrderType = it }
+            selectedItem = currentParams.orderType,
+            onItemSelected = {
+                currentParams = currentParams.copy(orderType = it)
+                saveOrderParams(context, currentParams)
+            }
         )
 
         WKDropdownMenu(
             label = "Currency",
             items = Currency.values().toList(),
-            selectedItem = selectedCurrency,
-            onItemSelected = { selectedCurrency = it }
+            selectedItem = currentParams.currency,
+            onItemSelected = {
+                currentParams = currentParams.copy(currency = it)
+                saveOrderParams(context, currentParams)
+            }
         )
 
         OutlinedTextField(
-            value = amount,
-            onValueChange = { amount = it },
+            value = currentParams.amount,
+            onValueChange = {
+                currentParams = currentParams.copy(amount = it)
+                saveOrderParams(context, currentParams)
+            },
             label = { Text("Amount") },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
         )
@@ -78,54 +86,93 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
         WKDropdownMenu(
             label = "Payment Method",
             items = PaymentMethod.values().toList(),
-            selectedItem = selectedPaymentMethod,
-            onItemSelected = { selectedPaymentMethod = it }
+            selectedItem = currentParams.paymentMethod,
+            onItemSelected = {
+                currentParams = currentParams.copy(paymentMethod = it)
+                saveOrderParams(context, currentParams)
+            }
         )
 
         OutlinedTextField(
-            value = premium,
-            onValueChange = { premium = it },
+            value = currentParams.premium,
+            onValueChange = {
+                currentParams = currentParams.copy(premium = it)
+                saveOrderParams(context, currentParams)
+            },
             label = { Text("Premium") },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
         )
 
-        if (selectedPaymentMethod == PaymentMethod.CUSTOM) {
+        if (currentParams.paymentMethod == PaymentMethod.CUSTOM) {
             OutlinedTextField(
-                value = customPaymentMethod,
-                onValueChange = { customPaymentMethod = it },
+                value = currentParams.customPaymentMethod,
+                onValueChange = {
+                    currentParams = currentParams.copy(customPaymentMethod = it)
+                    saveOrderParams(context, currentParams)
+                },
                 label = { Text("Custom Payment Method") }
             )
         }
         Button(
             onClick = {
-                val orderAmount = amount.toDoubleOrNull()
-                val orderPremium = premium.toDoubleOrNull()
+                val orderAmount = currentParams.amount.toDoubleOrNull()
+                val orderPremium = currentParams.premium.toDoubleOrNull()
 
                 if (orderAmount != null && orderPremium != null) {
                     val orderData = OrderData(
-                        type = selectedOrderType,
-                        currency = selectedCurrency,
+                        type = currentParams.orderType,
+                        currency = currentParams.currency,
                         amount = orderAmount,
-                        paymentMethod = selectedPaymentMethod,
+                        paymentMethod = currentParams.paymentMethod,
                         premium = orderPremium,
                     )
                     onCreateOrder(orderData)
                 }
             },
-            enabled = amount.isNotBlank()
+            enabled = currentParams.amount.isNotBlank() && currentParams.premium.isNotBlank()
         ) {
             Text("Create Order")
         }
     }
 }
 
+private fun saveOrderParams(context: Context, orderParams: OrderParams) {
+    val sharedPrefs = context.getSharedPreferences("OrderParams", Context.MODE_PRIVATE)
+    sharedPrefs.edit().apply {
+        putString("orderType", orderParams.orderType.name)
+        putString("currency", orderParams.currency.name)
+        putString("amount", orderParams.amount)
+        putString("paymentMethod", orderParams.paymentMethod.name)
+        putString("premium", orderParams.premium)
+        apply()
+    }
+}
+
+private fun loadOrderParams(context: Context): OrderParams {
+    val sharedPrefs = context.getSharedPreferences("OrderParams", Context.MODE_PRIVATE)
+    return OrderParams(
+        orderType = OrderType.valueOf(
+            sharedPrefs.getString("orderType", OrderType.BUY.name) ?: OrderType.BUY.name
+        ),
+        currency = Currency.valueOf(
+            sharedPrefs.getString("currency", Currency.USD.name) ?: Currency.USD.name
+        ),
+        amount = sharedPrefs.getString("amount", "") ?: "",
+        paymentMethod = PaymentMethod.valueOf(
+            sharedPrefs.getString(
+                "paymentMethod",
+                PaymentMethod.USDT.name
+            ) ?: PaymentMethod.USDT.name
+        ),
+        premium = sharedPrefs.getString("premium", "") ?: ""
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
 fun CreateOrderContentPreview() {
     RobosatsAndroidTheme {
-        CreateOrderContent { orderData ->
-            println(orderData)
-        }
+        CreateOrderContent({})
     }
 }
 
