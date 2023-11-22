@@ -50,6 +50,10 @@ class SharedViewModel(
     private var _activeOrder = MutableLiveData<OrderData?>(null)
     override val activeOrder: LiveData<OrderData?> get() = _activeOrder
 
+    private var _chatMessages = MutableLiveData<List<String>>(null)
+
+    override val chatMessages: LiveData<List<String>> get() = _chatMessages
+
     private val _ordersCache = mutableMapOf<Int, OrderData>()
 
     override fun restartTor() {
@@ -215,6 +219,10 @@ class SharedViewModel(
             torRepository.pauseResumeOrder(robot.token, orderId)
             getOrderDetails(robot, orderId)
         }
+    }
+
+    override fun getChatMessages(robot: Robot, orderId: Int, offset: Int) {
+        TODO("Not yet implemented")
     }
 
     override fun cancelOrder(onResult: (Boolean, String?) -> Unit) {

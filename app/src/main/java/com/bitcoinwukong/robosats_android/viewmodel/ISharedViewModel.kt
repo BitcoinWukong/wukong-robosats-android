@@ -22,6 +22,8 @@ interface ISharedViewModel {
 
     val activeOrder: LiveData<OrderData?>
 
+    val chatMessages: LiveData<List<String>>
+
     fun restartTor()
     fun fetchOrders()
     fun updateOrders(newOrders: List<OrderData>)
@@ -36,6 +38,8 @@ interface ISharedViewModel {
 
     fun getOrderDetails(robot: Robot, orderId: Int)
     fun pauseResumeOrder(robot: Robot, orderId: Int)
+
+    fun getChatMessages(robot: Robot, orderId: Int, offset: Int)
 
     fun cancelOrder(onResult: (Boolean, String?) -> Unit)
 }

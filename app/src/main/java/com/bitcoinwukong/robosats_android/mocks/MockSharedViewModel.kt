@@ -26,6 +26,7 @@ class MockSharedViewModel(
         MutableLiveData(selectedToken ?: selectedRobot?.token ?: "")
     override val selectedRobot: LiveData<Robot?> = MutableLiveData(selectedRobot)
     override val activeOrder: LiveData<OrderData?> = MutableLiveData(activeOrder)
+    override val chatMessages: LiveData<List<String>> = MutableLiveData(emptyList())
     override val torManagerEvents: LiveData<String> = MutableLiveData("")
     override val torState: LiveData<TorState> = MutableLiveData(TorState.Off)
     override val lastUpdated: LiveData<LocalDateTime> = MutableLiveData(LocalDateTime.now())
@@ -68,6 +69,10 @@ class MockSharedViewModel(
 
     override fun pauseResumeOrder(robot: Robot, orderId: Int) {
         Log.d("MockSharedViewModel", "pauseResumeOrder called")
+    }
+
+    override fun getChatMessages(robot: Robot, orderId: Int, offset: Int) {
+        Log.d("MockSharedViewModel", "getChatMessages called")
     }
 
     override fun cancelOrder(onResult: (Boolean, String?) -> Unit) {
