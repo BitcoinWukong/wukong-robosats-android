@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,28 +43,66 @@ fun OrderDetailsContent(
     val activeOrder by viewModel.activeOrder.observeAsState(null)
 
     if (activeOrder == null) {
-        Text("Loading order of ID $orderId...")
+        LoadingContent(orderId)
         return
     }
 
     val order = activeOrder ?: return
     Column(
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth(),
     ) {
-        Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(0.dp, 8.dp))
+        OrderStatusContent(order, viewModel, robot, orderId)
 
-        if ((order.isWaitingForSellerCollateral()) && (order.isSeller())) {
-            DisplayWaitingForSellerCollateralDetails(order)
-        } else if (order.isChatting()) {
-            Text("Order in progress...")
-        } else {
-            when (order.status) {
-                OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
-                OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
-                OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
-                else -> DisplayUnknownStatus(order)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End // Aligns the child to the end (right)
+        ) {
+            Button(onClick = {
+                viewModel.getOrderDetails(robot, orderId)
+            }) {
+                Text("Refresh")
             }
         }
+    }
+}
+
+@Composable
+private fun OrderStatusContent(
+    order: OrderData,
+    viewModel: ISharedViewModel,
+    robot: Robot,
+    orderId: Int
+) {
+    Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(bottom = 8.dp))
+
+    when {
+        order.isWaitingForSellerCollateral() && order.isSeller() -> DisplayWaitingForSellerCollateralDetails(
+            order
+        )
+
+        order.isChatting() -> Text("Order in progress...")
+        else -> when (order.status) {
+            OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
+            OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
+            OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
+            else -> DisplayUnknownStatus(order)
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent(orderId: Int) {
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Loading order of ID $orderId...")
+        Spacer(modifier = Modifier.height(8.dp))
+        CircularProgressIndicator()
     }
 }
 
@@ -75,7 +115,7 @@ private fun DisplayPublicOrderDetails(
 ) {
     OrderDetailsSection(order)
     Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
-        Text("Pause Order")
+        Text("Pause")
     }
 }
 
@@ -87,7 +127,7 @@ private fun DisplayPausedOrderDetails(
 ) {
     Text("Order is now paused")
     Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
-        Text("Resume Order")
+        Text("Resume")
     }
 }
 
