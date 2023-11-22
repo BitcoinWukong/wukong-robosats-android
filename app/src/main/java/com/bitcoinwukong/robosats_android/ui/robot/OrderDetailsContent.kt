@@ -49,6 +49,8 @@ fun OrderDetailsContent(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(0.dp, 8.dp))
+
             if (order.status == OrderStatus.PUBLIC) {
                 OrderDetailsSection(order)
 
@@ -58,7 +60,6 @@ fun OrderDetailsContent(
                     Text("Pause Order")
                 }
             } else if (order.status == OrderStatus.PAUSED) {
-                Text(text = "Order ID: ${order.id}")
                 Text("Order is now paused")
 
                 Button(onClick = {
@@ -110,7 +111,6 @@ fun OrderDetailsContent(
 @Composable
 fun OrderDetailsSection(order: OrderData) {
     Column(modifier = Modifier.padding(8.dp)) {
-        Text(text = "Order ID: ${order.id ?: "Not available"}")
         Text(text = "Type: ${order.type}")
         Text(text = "Currency: ${order.currency}")
         Text(text = "Amount: ${order.formattedAmount()}")
