@@ -48,6 +48,7 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
     // Shared Deferred for waiting for Tor
     private var waitingForTor: Deferred<Unit>? = null
+    private var isTorOn: Boolean = false
 
     fun restartTor() {
         torManager.restart()
@@ -89,7 +90,7 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         method: String = "GET",
         onSuccess: (String) -> Unit,
         onFailure: (String) -> Unit,
-        maxRetries: Int = 3,
+        maxRetries: Int = 2,
         retryDelayMillis: Long = 5000, // 5 seconds,
         checkTorConnection: Boolean = true
     ) {
@@ -208,12 +209,13 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         }
     }
 
-    suspend fun getInfo(): Result<JSONObject> = withContext(Dispatchers.IO) {
-        makeGeneralRequest(
-            api = "info",
-            checkTorConnection = false
-        )
-    }
+    suspend fun getInfo(checkTorConnection: Boolean = true): Result<JSONObject> =
+        withContext(Dispatchers.IO) {
+            makeGeneralRequest(
+                api = "info",
+                checkTorConnection = checkTorConnection
+            )
+        }
 
     suspend fun getRobotInfo(token: String): Result<Robot> = withContext(Dispatchers.IO) {
         makeGeneralRequest(
@@ -411,17 +413,27 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
         // If this is the first call, create a new Deferred
         waitingForTor = async {
-            while (!torManager.state.isOn()) {
+            while (!torManager.state.isOn() || !isTorOn) {
+                isTorOn = false
+
                 Log.d(TAG, "Waiting for Tor to turn on...")
                 if (!torManager.state.isStarting()) {
                     torManager.start()
                 }
 
+                var waitedSeconds = 0
+                while (!torManager.state.isOn() && waitedSeconds < 20) {
+                    delay(1000) // Wait for 1 seconds before checking again
+                    waitedSeconds += 1
+                }
+
                 // Make a call to getInfo to test the connection
-                val infoResult = getInfo()
+                val infoResult = getInfo(checkTorConnection = false)
                 if (infoResult.isFailure) {
                     Log.e(TAG, "Failed to establish a connection via Tor. Restarting Tor.")
                     torManager.restart()
+                } else {
+                    isTorOn = true
                 }
 
                 delay(3000) // Wait for 3 seconds before checking again
