@@ -10,7 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
-import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,7 +32,7 @@ class SharedViewModel(
     override val lastUpdated: LiveData<LocalDateTime> get() = _lastUpdated
 
     override val isUpdating: LiveData<Boolean> get() = torRepository.isUpdating
-    override val torState: LiveData<TorState> get() = torRepository.torState
+    override val isTorReady: LiveData<Boolean> get() = torRepository.isTorReady
 
     private var _robotTokens = MutableLiveData<Set<String>>()
     override val robotTokens: LiveData<Set<String>> get() = _robotTokens
@@ -123,16 +122,22 @@ class SharedViewModel(
         }
     }
 
-    private fun updateRobotInfoInMap(token: String, robot: Robot) {
+    private fun updateRobotInfoInMap(token: String, robot: Robot?) {
         val currentInfo = _robotsInfoMap.value ?: mapOf()
-        val updatedInfo = currentInfo.toMutableMap().apply { put(token, robot) }
+        val updatedInfo = currentInfo.toMutableMap().apply {
+            if (robot != null) {
+                put(token, robot) // Add or update the robot info
+                if (robot.activeOrderId != null) {
+                    getOrderDetails(robot, robot.activeOrderId)
+                }
+            } else {
+                remove(token) // Remove the robot info if robot is null
+            }
+        }
         _robotsInfoMap.postValue(updatedInfo)
 
-        if (_selectedToken.value == robot.token) {
+        if (_selectedToken.value == token) {
             updateSelectedRobotInternal(robot)
-        }
-        if (robot.activeOrderId != null) {
-            getOrderDetails(robot, robot.activeOrderId)
         }
     }
 
@@ -169,6 +174,7 @@ class SharedViewModel(
         orderData: OrderData
     ) {
         val robot = _selectedRobot.value ?: return
+        updateRobotInfoInMap(robot.token, null) // Clear robot info cache
         viewModelScope.launch {
             // Todo: update view model and UI base on the orde creation result
             val result = torRepository.makeOrder(
@@ -181,8 +187,6 @@ class SharedViewModel(
             )
             result.onSuccess {
                 fetchRobotInfo(robot.token)
-
-
             }.onFailure { e ->
                 Log.e(TAG, "Error in createOrder: ${e.message}")
             }

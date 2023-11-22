@@ -3,7 +3,6 @@ package com.bitcoinwukong.robosats_android.viewmodel
 import androidx.lifecycle.LiveData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
-import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import java.time.LocalDateTime
 
 interface ISharedViewModel {
@@ -13,7 +12,7 @@ interface ISharedViewModel {
     val lastUpdated: LiveData<LocalDateTime>
 
     val isUpdating: LiveData<Boolean>
-    val torState: LiveData<TorState>
+    val isTorReady: LiveData<Boolean>
 
     val robotTokens: LiveData<Set<String>>
     val robotsInfoMap: LiveData<Map<String, Robot>>

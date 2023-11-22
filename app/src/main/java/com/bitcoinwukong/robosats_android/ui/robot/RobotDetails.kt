@@ -1,7 +1,10 @@
 package com.bitcoinwukong.robosats_android.ui.robot
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,17 +37,34 @@ fun RobotDetails(
             selectedToken.isEmpty() -> {
                 Text("No active robot")
             }
+
             selectedRobot == null -> {
-                CircularProgressIndicator()
+                Column(
+                    modifier = Modifier.fillMaxWidth(), // Ensures the Column takes the full width
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val displayToken =
+                        if (selectedToken.length > 12) selectedToken.take(8) + "..." + selectedToken.takeLast(
+                            4
+                        ) else selectedToken
+                    Text(
+                        "Loading robot of token $displayToken",
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally)) // Center the progress indicator
+                }
             }
+
             selectedRobot.errorMessage != null -> {
                 Text(text = selectedRobot.errorMessage)
             }
+
             selectedRobot.activeOrderId == null -> {
                 Button(onClick = onClickCreateOrder, enabled = true) {
                     Text("Create Order")
                 }
             }
+
             else -> {
                 OrderDetailsContent(viewModel, selectedRobot)
             }
@@ -54,9 +74,17 @@ fun RobotDetails(
 
 @Preview(showBackground = true)
 @Composable
-fun RobotDetailsPreviewLoading() {
+fun RobotDetailsPreview_NoTokenSelected() {
     Box(modifier = Modifier.size(300.dp)) {
-        RobotDetails(MockSharedViewModel(), "",null) {}
+        RobotDetails(MockSharedViewModel(), "", null) {}
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RobotDetailsPreview_LoadingRobot() {
+    Box(modifier = Modifier.size(300.dp)) {
+        RobotDetails(MockSharedViewModel(), "XWdQIua1zwlK60rw00IVd64fvwbk0DyJC8ye", null) {}
     }
 }
 
