@@ -118,7 +118,10 @@ private fun InvoiceDisplaySection(invoice: String) {
     val displayInvoice =
         if (invoice.length > 50) invoice.take(32) + "..." + invoice.takeLast(18) else invoice
     TextButton(onClick = {
-        val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("lightning:$invoice") }
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("lightning:$invoice")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
         context.startActivity(intent)
     }) {
         Text(displayInvoice)
@@ -137,7 +140,6 @@ private fun InvoiceDisplaySection(invoice: String) {
             Text("Copy Invoice")
         }
     }
-
 }
 
 @Composable
