@@ -25,8 +25,8 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
-    - name: Upload APK
+    - name: Upload Universal Debug APK
       uses: actions/upload-artifact@v2
       with:
-        name: app-debug.apk
-        path: app/build/outputs/apk/debug/*.apk
+        name: app-universal-debug.apk
+        path: app/build/outputs/apk/debug/app-universal-debug.apk
