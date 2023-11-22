@@ -133,6 +133,8 @@ fun OrderDetailsContent(
                         }
                     }
                 }
+            } else if (order.isChatting()) {
+                Text("Order in progress...")
             } else {
                 Text("Unknown order status")
                 Log.d("Order", "Unkown order status, order data: $activeOrder")

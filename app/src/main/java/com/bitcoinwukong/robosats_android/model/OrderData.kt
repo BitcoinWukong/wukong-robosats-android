@@ -34,6 +34,7 @@ data class OrderData(
     val escrowSats: Int? = null,
     val isMaker: Boolean = false,
     val isTaker: Boolean = false,
+    val chatLastIndex: Int? = null,
 ) {
     companion object {
         fun fromJson(jsonObject: JSONObject): OrderData {
@@ -81,8 +82,13 @@ data class OrderData(
                 escrowSats = jsonObject.optInt("escrow_satoshis", -1).takeIf { it != -1 },
                 isMaker = jsonObject.optBoolean("is_maker", false),
                 isTaker = jsonObject.optBoolean("is_taker", false),
+                chatLastIndex = jsonObject.optInt("chat_last_index", -1).takeIf { it != -1 },
             )
         }
+    }
+
+    fun isChatting(): Boolean {
+        return (status == OrderStatus.SENDING_FIAT_IN_CHATROOM || status == OrderStatus.FIAT_SENT_IN_CHATROOM)
     }
 
     fun isWaitingForSellerCollateral(): Boolean {
