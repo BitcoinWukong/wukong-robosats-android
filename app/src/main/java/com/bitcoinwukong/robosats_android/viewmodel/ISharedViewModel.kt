@@ -35,7 +35,7 @@ interface ISharedViewModel {
 
     fun createOrder(orderData: OrderData)
 
-    fun getOrderDetails(robot: Robot, orderId: Int)
+    fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean = false)
     fun pauseResumeOrder(robot: Robot, orderId: Int)
 
     fun getChatMessages(robot: Robot, orderId: Int, offset: Int)

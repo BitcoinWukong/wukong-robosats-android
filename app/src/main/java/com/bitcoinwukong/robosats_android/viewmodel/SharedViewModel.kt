@@ -193,9 +193,14 @@ class SharedViewModel(
         }
     }
 
-    override fun getOrderDetails(robot: Robot, orderId: Int) {
+    override fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean) {
         Log.d(TAG, "getting order details: $orderId")
-        _activeOrder.value = _ordersCache[orderId]
+        if (!resetCache) {
+            _activeOrder.value = _ordersCache[orderId]
+        } else {
+            _ordersCache.remove(orderId)
+            _activeOrder.value = null
+        }
 
         viewModelScope.launch {
             val result = torRepository.getOrderDetails(robot.token, orderId)

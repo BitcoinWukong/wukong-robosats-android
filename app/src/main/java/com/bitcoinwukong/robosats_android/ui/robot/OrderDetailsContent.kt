@@ -53,7 +53,7 @@ fun OrderDetailsContent(
         } else {
             val order = activeOrder ?: return
             OrderStatusContent(order, viewModel, robot, orderId)
-            RefreshButton { viewModel.getOrderDetails(robot, orderId) }
+            RefreshButton { viewModel.getOrderDetails(robot, orderId, true) }
         }
     }
 }
@@ -187,9 +187,11 @@ private fun DisplayUnknownStatus(order: OrderData) {
 
 @Composable
 fun OrderDetailsSection(order: OrderData) {
-    Column(modifier = Modifier
-        .padding(8.dp)
-        .fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+    ) {
         Text(text = "Type: ${order.type}")
         Text(text = "Currency: ${order.currency}")
         Text(text = "Amount: ${order.formattedAmount()}")

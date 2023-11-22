@@ -64,7 +64,7 @@ class MockSharedViewModel(
         Log.d("MockSharedViewModel", "createOrder called")
     }
 
-    override fun getOrderDetails(robot: Robot, orderId: Int) {
+    override fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean) {
         Log.d("MockSharedViewModel", "getOrderDetails called")
     }
 
