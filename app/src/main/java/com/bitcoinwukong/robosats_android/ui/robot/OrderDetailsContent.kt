@@ -52,11 +52,7 @@ fun OrderDetailsContent(
         Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(0.dp, 8.dp))
 
         if ((order.isWaitingForSellerCollateral()) && (order.isSeller())) {
-            order.escrowInvoice?.let { escrowInvoice ->
-                Text("Waiting for collateral of ${order.escrowSats} sats:")
-                Spacer(Modifier.height(16.dp))
-                InvoiceDisplaySection(escrowInvoice)
-            }
+            DisplayWaitingForSellerCollateralDetails(order)
         } else if (order.isChatting()) {
             Text("Order in progress...")
         } else {
@@ -101,6 +97,15 @@ private fun DisplayWaitingForMakerBondDetails(order: OrderData) {
         Text("Waiting for maker bond:")
         Spacer(Modifier.height(16.dp))
         InvoiceDisplaySection(bondInvoice)
+    }
+}
+
+@Composable
+private fun DisplayWaitingForSellerCollateralDetails(order: OrderData) {
+    order.escrowInvoice?.let { escrowInvoice ->
+        Text("Waiting for collateral of ${order.escrowSats} sats:")
+        Spacer(Modifier.height(16.dp))
+        InvoiceDisplaySection(escrowInvoice)
     }
 }
 
