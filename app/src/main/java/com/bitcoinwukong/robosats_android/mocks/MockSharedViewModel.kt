@@ -15,7 +15,8 @@ class MockSharedViewModel(
     robotsInfoMap: Map<String, Robot> = emptyMap(),
     selectedToken: String? = null,
     selectedRobot: Robot? = null,
-    activeOrder: OrderData? = null
+    activeOrder: OrderData? = null,
+    isTorReady: Boolean = true,
 ) : ISharedViewModel {
     override val orders = MutableLiveData(ordersList)
 
@@ -29,7 +30,7 @@ class MockSharedViewModel(
     override val torManagerEvents: LiveData<String> = MutableLiveData("")
     override val lastUpdated: LiveData<LocalDateTime> = MutableLiveData(LocalDateTime.now())
     override val isUpdating: LiveData<Boolean> = MutableLiveData(isUpdating)
-    override val isTorReady: LiveData<Boolean> = MutableLiveData(false)
+    override val isTorReady: LiveData<Boolean> = MutableLiveData(isTorReady)
 
     override fun restartTor() {
         Log.d("MockSharedViewModel", "restartTor called")
