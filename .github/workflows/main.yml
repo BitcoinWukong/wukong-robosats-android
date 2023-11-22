@@ -27,7 +27,7 @@ jobs:
         run: ./gradlew build
 
       - name: Upload Universal Debug APK
-        uses: actions/upload-artifact@latest
+        uses: actions/upload-artifact@v3
         with:
           name: app-universal-debug.apk
           path: app/build/outputs/apk/debug/app-universal-debug.apk
