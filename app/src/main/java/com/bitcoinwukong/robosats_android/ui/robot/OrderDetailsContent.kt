@@ -62,7 +62,7 @@ fun OrderDetailsContent(
 private fun RefreshButton(onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End // Keep the Refresh button to the end (right)
+        horizontalArrangement = Arrangement.End
     ) {
         Button(
             onClick = onClick,
@@ -79,7 +79,7 @@ private fun OrderStatusContent(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start // Keep the Refresh button to the end (right)
+        horizontalArrangement = Arrangement.Start
     ) {
         Text(text = "Order ID: ${order.id}", modifier = Modifier.padding(bottom = 8.dp))
     }
