@@ -41,7 +41,7 @@ fun OrderDetailsContent(
     val activeOrder by viewModel.activeOrder.observeAsState(null)
 
     if (activeOrder == null) {
-        Text("Loading...")
+        Text("Loading order of ID $orderId...")
         return
     }
 
