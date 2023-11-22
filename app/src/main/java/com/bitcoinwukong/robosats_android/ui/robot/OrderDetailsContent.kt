@@ -100,6 +100,39 @@ fun OrderDetailsContent(
                         }
                     }
                 }
+            } else if ((order.isWaitingForSellerCollateral()) && (order.isSeller())) {
+                order.escrowInvoice?.let { escrowInvoice ->
+                    Text("Waiting for collateral of ${order.escrowSats} sats:")
+                    Spacer(Modifier.height(16.dp))
+
+                    // Display the first 32 characters and the last 18 characters of the bondInvoice
+                    val displayInvoice =
+                        if (escrowInvoice.length > 50) escrowInvoice.take(32) + "..." + escrowInvoice.takeLast(
+                            18
+                        ) else escrowInvoice
+                    TextButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("lightning:$escrowInvoice")
+                        }
+                        context.startActivity(intent)
+                    }) {
+                        Text(displayInvoice)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(16.dp)
+
+                    ) {
+                        Button(onClick = {
+                            val clip = ClipData.newPlainText("invoice", escrowInvoice)
+                            clipboardManager.setPrimaryClip(clip)
+                        }) {
+                            Text("Copy Invoice")
+                        }
+                    }
+                }
             } else {
                 Text("Unknown order status")
                 Log.d("Order", "Unkown order status, order data: $activeOrder")
