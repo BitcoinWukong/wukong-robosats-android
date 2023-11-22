@@ -1,10 +1,12 @@
 package com.bitcoinwukong.robosats_android.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
@@ -25,10 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
+import com.bitcoinwukong.robosats_android.ui.components.ScrollableTextBox
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
@@ -42,15 +46,32 @@ enum class BottomTab(val title: String, val icon: ImageVector) {
 fun MainScreen(sharedViewModel: ISharedViewModel) {
     val isTorReady by sharedViewModel.isTorReady.observeAsState(false)
     if (!isTorReady) {
+        val liveDataValue: String by sharedViewModel.torManagerEvents.observeAsState("")
+
         Column(
             modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center, // Centers vertically
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(16.dp),
         ) {
-            Text("Connecting to Tor...")
-            Spacer(modifier = Modifier.height(16.dp))
-            CircularProgressIndicator()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center, // Centers vertically
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Connecting to Tor...")
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator()
+            }
+            ScrollableTextBox(
+                text = liveDataValue,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+            )
         }
         return
     }
