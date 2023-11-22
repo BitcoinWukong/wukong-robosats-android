@@ -90,7 +90,7 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
         method: String = "GET",
         onSuccess: (String) -> Unit,
         onFailure: (String) -> Unit,
-        maxRetries: Int = 1,
+        maxRetries: Int = 2,
         retryDelayMillis: Long = 5000, // 5 seconds,
         checkTorConnection: Boolean = true
     ) {
