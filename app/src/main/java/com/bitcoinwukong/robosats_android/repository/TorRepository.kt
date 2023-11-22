@@ -13,9 +13,6 @@ import com.bitcoinwukong.robosats_android.utils.ROBOSATS_MAINNET
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_TESTNET
 import com.bitcoinwukong.robosats_android.utils.TOR_SOCKS_PORT
 import com.bitcoinwukong.robosats_android.utils.hashTokenAsBase91
-import io.matthewnelson.kmp.tor.controller.common.events.TorEvent
-import io.matthewnelson.kmp.tor.manager.common.event.TorManagerEvent
-import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import io.matthewnelson.kmp.tor.manager.common.state.isOn
 import io.matthewnelson.kmp.tor.manager.common.state.isStarting
 import kotlinx.coroutines.Deferred
@@ -38,17 +35,16 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListener {
+class TorRepository(val torManager: ITorManager) {
     private val isCurrentlyUpdating = AtomicBoolean(false)
     private val _isUpdating = MutableLiveData(false)
     val isUpdating: LiveData<Boolean> get() = _isUpdating
 
-    private val _torState = MutableLiveData<TorState>(TorState.Off)
-    val torState: LiveData<TorState> get() = _torState
-
     // Shared Deferred for waiting for Tor
     private var waitingForTor: Deferred<Unit>? = null
-    private var isTorOn: Boolean = false
+
+    private var _isTorReady = MutableLiveData(false)
+    val isTorReady: LiveData<Boolean> get() = _isTorReady
 
     fun restartTor() {
         torManager.restart()
@@ -65,22 +61,6 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
-    }
-
-    init {
-        torManager.addListener(this)
-    }
-
-    override fun onEvent(event: TorManagerEvent) {
-        _torState.postValue(torManager.state)
-    }
-
-    override fun onEvent(event: TorEvent.Type.MultiLineEvent, output: List<String>) {
-        _torState.postValue(torManager.state)
-    }
-
-    override fun onEvent(event: TorEvent.Type.SingleLineEvent, output: String) {
-        _torState.postValue(torManager.state)
     }
 
     private suspend fun makeApiRequest(
@@ -413,8 +393,8 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
 
         // If this is the first call, create a new Deferred
         waitingForTor = async {
-            while (!torManager.state.isOn() || !isTorOn) {
-                isTorOn = false
+            while (!torManager.state.isOn() || _isTorReady.value == false) {
+                _isTorReady.postValue(false)
 
                 Log.d(TAG, "Waiting for Tor to turn on...")
                 if (!torManager.state.isStarting()) {
@@ -433,7 +413,7 @@ class TorRepository(val torManager: ITorManager) : TorManagerEvent.SealedListene
                     Log.e(TAG, "Failed to establish a connection via Tor. Restarting Tor.")
                     torManager.restart()
                 } else {
-                    isTorOn = true
+                    _isTorReady.postValue(true)
                 }
 
                 delay(3000) // Wait for 3 seconds before checking again

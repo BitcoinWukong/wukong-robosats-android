@@ -10,7 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
-import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,7 +32,7 @@ class SharedViewModel(
     override val lastUpdated: LiveData<LocalDateTime> get() = _lastUpdated
 
     override val isUpdating: LiveData<Boolean> get() = torRepository.isUpdating
-    override val torState: LiveData<TorState> get() = torRepository.torState
+    override val isTorReady: LiveData<Boolean> get() = torRepository.isTorReady
 
     private var _robotTokens = MutableLiveData<Set<String>>()
     override val robotTokens: LiveData<Set<String>> get() = _robotTokens

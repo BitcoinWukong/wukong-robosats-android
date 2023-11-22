@@ -36,9 +36,6 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
-import io.matthewnelson.kmp.tor.manager.common.state.TorState
-import io.matthewnelson.kmp.tor.manager.common.state.isOn
-import io.matthewnelson.kmp.tor.manager.common.state.isStarting
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -46,7 +43,7 @@ import java.time.format.DateTimeFormatter
 fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val orders by viewModel.orders.observeAsState(emptyList())
     val isUpdating by viewModel.isUpdating.observeAsState(false)
-    val torState by viewModel.torState.observeAsState(TorState.Starting)
+    val isTorReady by viewModel.isTorReady.observeAsState(false)
     val lastUpdated by viewModel.lastUpdated.observeAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -67,9 +64,11 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
             }
         }
 
-        Box(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
             LazyColumn {
                 items(orders.filter { order ->
                     (selectedTabIndex == 0 && order.type == OrderType.BUY) ||
@@ -88,11 +87,11 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = getTorStatusText(torState, lastUpdated),
+                text = getTorStatusText(isTorReady, lastUpdated),
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            if (torState.isStarting() || isUpdating) {
+            if (!isTorReady || isUpdating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
                 Button(
@@ -106,17 +105,15 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     }
 }
 
-private fun getTorStatusText(torState: TorState, lastUpdated: LocalDateTime?): String {
-    return when {
-        torState.isStarting() -> "Starting tor..."
-        torState.isOn() -> {
-            if (lastUpdated != null) {
-                "Last updated: \n${lastUpdated.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}"
-            } else {
-                "Updating..."
-            }
+private fun getTorStatusText(isTorReady: Boolean, lastUpdated: LocalDateTime?): String {
+    return if (isTorReady) {
+        if (lastUpdated != null) {
+            "Last updated: \n${lastUpdated.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}"
+        } else {
+            "Updating..."
         }
-        else -> "Tor network is off"
+    } else {
+        "Starting tor..."
     }
 }
 
@@ -165,9 +162,37 @@ fun OrderRow(orderData: OrderData) {
 fun MarketScreenPreview() {
     RobosatsAndroidTheme {
         val orders = listOf(
-            OrderData(id = 91593, type = OrderType.BUY, currency = Currency.USD, minAmount = 50.0, maxAmount = 175.0, paymentMethod = PaymentMethod.USDT, price = 105.0, premium = 5.0),
-            OrderData(id = 2, type = OrderType.SELL, currency = Currency.EUR, amount = 200.0, paymentMethod = PaymentMethod.CUSTOM, customPaymentMethod = "PaymentMethod2", price = 210.0, premium = -2.0),
-            OrderData(id = 91595, type = OrderType.BUY, currency = Currency.BTC, minAmount = 150.0, maxAmount = 2000.0, paymentMethod = PaymentMethod.CUSTOM, customPaymentMethod = "PaymentMethod3",  price = 315.0, premium = -4.91)
+            OrderData(
+                id = 91593,
+                type = OrderType.BUY,
+                currency = Currency.USD,
+                minAmount = 50.0,
+                maxAmount = 175.0,
+                paymentMethod = PaymentMethod.USDT,
+                price = 105.0,
+                premium = 5.0
+            ),
+            OrderData(
+                id = 2,
+                type = OrderType.SELL,
+                currency = Currency.EUR,
+                amount = 200.0,
+                paymentMethod = PaymentMethod.CUSTOM,
+                customPaymentMethod = "PaymentMethod2",
+                price = 210.0,
+                premium = -2.0
+            ),
+            OrderData(
+                id = 91595,
+                type = OrderType.BUY,
+                currency = Currency.BTC,
+                minAmount = 150.0,
+                maxAmount = 2000.0,
+                paymentMethod = PaymentMethod.CUSTOM,
+                customPaymentMethod = "PaymentMethod3",
+                price = 315.0,
+                premium = -4.91
+            )
         )
         val mockSharedViewModel = MockSharedViewModel(orders, false)
         MarketScreen(mockSharedViewModel)

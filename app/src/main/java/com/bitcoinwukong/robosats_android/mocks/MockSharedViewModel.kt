@@ -6,7 +6,6 @@ import androidx.lifecycle.MutableLiveData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
-import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import java.time.LocalDateTime
 
 class MockSharedViewModel(
@@ -28,9 +27,10 @@ class MockSharedViewModel(
     override val activeOrder: LiveData<OrderData?> = MutableLiveData(activeOrder)
     override val chatMessages: LiveData<List<String>> = MutableLiveData(emptyList())
     override val torManagerEvents: LiveData<String> = MutableLiveData("")
-    override val torState: LiveData<TorState> = MutableLiveData(TorState.Off)
     override val lastUpdated: LiveData<LocalDateTime> = MutableLiveData(LocalDateTime.now())
     override val isUpdating: LiveData<Boolean> = MutableLiveData(isUpdating)
+    override val isTorReady: LiveData<Boolean> = MutableLiveData(false)
+
     override fun restartTor() {
         Log.d("MockSharedViewModel", "restartTor called")
     }
