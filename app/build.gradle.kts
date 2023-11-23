@@ -1,9 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+
+    // Read keystore information from env var or local properties
+    val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("keystore.password")
+    val keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("key.password")
+
     namespace = "com.bitcoinwukong.robosats_android"
     compileSdk = 34
 
@@ -22,6 +34,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -51,6 +66,16 @@ android {
             excludes += "META-INF/LICENSE-notice.md"
         }
     }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../keystore/debug.keystore")
+            storePassword = keystorePassword
+            this.keyAlias = "androiddebugkey"
+            this.keyPassword = keyPassword
+        }
+    }
+
     splits {
         // Configures multiple APKs based on ABI. This helps keep the size
         // down, since PT binaries can be large.
