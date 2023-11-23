@@ -1,9 +1,23 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+
+    // Read keystore information from local properties
+    val keystorePath = localProperties.getProperty("keystore.path")
+    val keystorePassword = localProperties.getProperty("keystore.password")
+    val keyAlias = localProperties.getProperty("key.alias")
+    val keyPassword = localProperties.getProperty("key.password")
+
     namespace = "com.bitcoinwukong.robosats_android"
     compileSdk = 34
 
@@ -57,10 +71,12 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            storeFile = file("../keystore/debug.keystore")
-            storePassword = "BitcoinWukong"
-            keyAlias = "androiddebugkey"
-            keyPassword = "BitcoinWukong"
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+            }
+            storePassword = keystorePassword
+            this.keyAlias = keyAlias
+            this.keyPassword = keyPassword
         }
     }
 
