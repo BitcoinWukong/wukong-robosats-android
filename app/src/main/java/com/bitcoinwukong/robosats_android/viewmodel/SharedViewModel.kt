@@ -231,7 +231,11 @@ class SharedViewModel(
     }
 
     override fun getChatMessages(robot: Robot, orderId: Int, offset: Int) {
-        TODO("Not yet implemented")
+        viewModelScope.launch {
+            val result = torRepository.getChatMessages(robot.token, orderId, offset)
+            Log.d(TAG, "getChatMessages result: $result")
+
+        }
     }
 
     override fun cancelOrder(onResult: (Boolean, String?) -> Unit) {

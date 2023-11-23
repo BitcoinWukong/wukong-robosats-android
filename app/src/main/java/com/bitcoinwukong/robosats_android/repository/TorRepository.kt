@@ -214,6 +214,20 @@ class TorRepository(val torManager: ITorManager) {
         )
     }
 
+    suspend fun getChatMessages(token: String, orderId: Int, offset: Int = 0): Result<JSONObject> =
+        withContext(Dispatchers.IO) {
+            val queryParams = mapOf(
+                "order_id" to orderId.toString(),
+                "offset" to offset.toString(),
+            )
+
+            makeGeneralRequest(
+                api = "chat",
+                token = token,
+                queryParams = queryParams,
+            )
+        }
+
     suspend fun makeOrder(
         token: String,
         type: OrderType,

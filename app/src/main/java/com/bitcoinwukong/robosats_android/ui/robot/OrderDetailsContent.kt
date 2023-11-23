@@ -89,7 +89,10 @@ private fun OrderStatusContent(
             order
         )
 
-        order.isChatting() -> Text("Order in progress...")
+        order.isChatting() -> {
+            viewModel.getChatMessages(robot, orderId)
+            Text("Order in progress...")
+        }
         else -> when (order.status) {
             OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
             OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
