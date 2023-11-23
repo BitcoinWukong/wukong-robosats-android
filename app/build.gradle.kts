@@ -12,11 +12,9 @@ android {
         localProperties.load(localPropertiesFile.inputStream())
     }
 
-    // Read keystore information from local properties
-    val keystorePath = localProperties.getProperty("keystore.path")
-    val keystorePassword = localProperties.getProperty("keystore.password")
-    val keyAlias = localProperties.getProperty("key.alias")
-    val keyPassword = localProperties.getProperty("key.password")
+    // Read keystore information from env var or local properties
+    val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("keystore.password")
+    val keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("key.password")
 
     namespace = "com.bitcoinwukong.robosats_android"
     compileSdk = 34
@@ -71,11 +69,9 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            if (keystorePath != null) {
-                storeFile = file(keystorePath)
-            }
+            storeFile = file("../keystore/debug.keystore")
             storePassword = keystorePassword
-            this.keyAlias = keyAlias
+            this.keyAlias = "androiddebugkey"
             this.keyPassword = keyPassword
         }
     }
