@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.bitcoinwukong.robosats_android.model.Currency
+import com.bitcoinwukong.robosats_android.model.Message
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
@@ -214,19 +215,47 @@ class TorRepository(val torManager: ITorManager) {
         )
     }
 
-    suspend fun getChatMessages(token: String, orderId: Int, offset: Int = 0): Result<JSONObject> =
-        withContext(Dispatchers.IO) {
-            val queryParams = mapOf(
-                "order_id" to orderId.toString(),
-                "offset" to offset.toString(),
-            )
+    suspend fun getChatMessages(
+        token: String,
+        orderId: Int,
+        offset: Int = 0
+    ): Result<List<Message>> = withContext(Dispatchers.IO) {
+        val queryParams = mapOf(
+            "order_id" to orderId.toString(),
+            "offset" to offset.toString(),
+        )
 
-            makeGeneralRequest(
-                api = "chat",
-                token = token,
-                queryParams = queryParams,
-            )
-        }
+        makeGeneralRequest(
+            api = "chat",
+            token = token,
+            queryParams = queryParams,
+        ).fold(
+            onSuccess = { jsonObject ->
+                val messagesJsonArray = jsonObject.optJSONArray("messages")
+                val messages = mutableListOf<Message>()
+
+                if (messagesJsonArray != null) {
+                    for (i in 0 until messagesJsonArray.length()) {
+                        val messageJsonObject = messagesJsonArray.optJSONObject(i)
+                        messageJsonObject?.let {
+                            val message = Message(
+                                index = it.optInt("index"),
+                                time = it.optString("time"),
+                                message = it.optString("message"),
+                                nick = it.optString("nick")
+                            )
+                            messages.add(message)
+                        }
+                    }
+                }
+
+                Result.success(messages)
+            },
+            onFailure = { e ->
+                Result.failure(e)
+            }
+        )
+    }
 
     suspend fun makeOrder(
         token: String,
@@ -246,7 +275,7 @@ class TorRepository(val torManager: ITorManager) {
         latitude: String? = null,
         longitude: String? = null
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
-        val formBodyParams = mutableMapOf<String, String>(
+        val formBodyParams = mutableMapOf(
             "type" to type.value.toString(),
             "currency" to currency.id.toString(),
             "has_range" to hasRange.toString(),

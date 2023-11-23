@@ -233,8 +233,14 @@ class SharedViewModel(
     override fun getChatMessages(robot: Robot, orderId: Int, offset: Int) {
         viewModelScope.launch {
             val result = torRepository.getChatMessages(robot.token, orderId, offset)
-            Log.d(TAG, "getChatMessages result: $result")
-
+            result.onSuccess { messages ->
+                Log.d(TAG, "getChatMessages succeeded:")
+                messages.forEach { message ->
+                    Log.d(TAG, "Message: $message")
+                }
+            }.onFailure { e ->
+                Log.e(TAG, "getChatMessages failed: ${e.message}")
+            }
         }
     }
 
