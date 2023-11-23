@@ -5,15 +5,22 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
 import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPKeyRingGenerator
+import org.bouncycastle.openpgp.PGPPrivateKey
 import org.bouncycastle.openpgp.PGPPublicKey
+import org.bouncycastle.openpgp.PGPPublicKeyRingCollection
 import org.bouncycastle.openpgp.PGPSecretKeyRing
+import org.bouncycastle.openpgp.PGPSecretKeyRingCollection
 import org.bouncycastle.openpgp.PGPSignature
 import org.bouncycastle.openpgp.PGPUtil
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.security.KeyPairGenerator
 import java.security.Security
 import java.util.Date
@@ -41,6 +48,39 @@ object PgpKeyGenerator {
         val encryptedPrivateKey = exportEncryptedPrivateKey(secretKeyRing)
 
         return Pair(publicKey, encryptedPrivateKey)
+    }
+
+    fun decryptPrivateKey(encryptedPrivateKey: String, passphrase: String): PGPPrivateKey? {
+        val secretKeyRing = readSecretKeyRing(encryptedPrivateKey)
+        val secretKey = secretKeyRing.secretKey
+        return secretKey?.extractPrivateKey(
+            JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase.toCharArray())
+        )
+    }
+
+    private fun readSecretKeyRing(armoredPrivateKey: String): PGPSecretKeyRing {
+        val inputStream: InputStream =
+            ByteArrayInputStream(armoredPrivateKey.toByteArray(Charsets.UTF_8))
+        val pgpObjectFactory = PGPUtil.getDecoderStream(inputStream)
+        val pgpSecretKeyRingCollection =
+            PGPSecretKeyRingCollection(pgpObjectFactory, JcaKeyFingerprintCalculator())
+        return pgpSecretKeyRingCollection.iterator().next()
+    }
+
+    fun doKeysMatch(publicKeyArmored: String, encryptedPrivateKey: String, passphrase: String): Boolean {
+        val decryptedPrivateKey = decryptPrivateKey(encryptedPrivateKey, passphrase)
+        val publicKey = readPublicKey(publicKeyArmored)
+
+        return decryptedPrivateKey?.keyID == publicKey?.keyID
+    }
+
+    private fun readPublicKey(armoredPublicKey: String): PGPPublicKey? {
+        val inputStream: InputStream = ByteArrayInputStream(armoredPublicKey.toByteArray(Charsets.UTF_8))
+        val pgpObjectFactory = PGPUtil.getDecoderStream(inputStream)
+        val pgpPubKeyRingCollection = PGPPublicKeyRingCollection(pgpObjectFactory, JcaKeyFingerprintCalculator())
+        val pgpPubKeyRing = pgpPubKeyRingCollection.iterator().next()
+
+        return pgpPubKeyRing.publicKey
     }
 
     private fun generateSecretKey(
