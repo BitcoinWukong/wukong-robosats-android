@@ -24,6 +24,25 @@ object PgpKeyGenerator {
         Security.addProvider(BouncyCastleProvider())
     }
 
+    fun generateKeyPair(
+        identity: String,
+        passphrase: String,
+        algorithm: Int = PGPPublicKey.RSA_GENERAL,
+        keySize: Int = 2048
+    ): Pair<String, String> {
+        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+        keyPairGenerator.initialize(keySize)
+
+        val keyPair = keyPairGenerator.generateKeyPair()
+        val pgpKeyPair = JcaPGPKeyPair(algorithm, keyPair, Date())
+        val secretKeyRing = generateSecretKey(pgpKeyPair, identity, passphrase.toCharArray())
+
+        val publicKey = exportPublicKey(secretKeyRing.publicKey)
+        val encryptedPrivateKey = exportEncryptedPrivateKey(secretKeyRing)
+
+        return Pair(publicKey, encryptedPrivateKey)
+    }
+
     private fun generateSecretKey(
         keyPair: PGPKeyPair,
         identity: String,
@@ -40,7 +59,7 @@ object PgpKeyGenerator {
             null,
             JcaPGPContentSignerBuilder(keyPair.publicKey.algorithm, PGPUtil.SHA256),
             JcePBESecretKeyEncryptorBuilder(
-                PGPEncryptedData.CAST5,
+                PGPEncryptedData.AES_128,
                 digestCalculator
             ).setProvider("BC").build(passphrase)
         )
@@ -63,25 +82,4 @@ object PgpKeyGenerator {
         armoredOut.close()
         return out.toString("UTF-8")
     }
-
-    fun generateKeyPair(
-        identity: String,
-        passphrase: String,
-        algorithm: Int = PGPPublicKey.RSA_GENERAL,
-        keySize: Int = 2048
-    ): Pair<String, String> {
-        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-        keyPairGenerator.initialize(keySize)
-
-        val keyPair = keyPairGenerator.generateKeyPair()
-        val pgpKeyPair = JcaPGPKeyPair(algorithm, keyPair, Date())
-        val secretKeyRing = generateSecretKey(pgpKeyPair, identity, passphrase.toCharArray())
-
-        val publicKey = exportPublicKey(secretKeyRing.publicKey)
-        val encryptedPrivateKey = exportEncryptedPrivateKey(secretKeyRing)
-
-        return Pair(publicKey, encryptedPrivateKey)
-    }
-
-
 }
