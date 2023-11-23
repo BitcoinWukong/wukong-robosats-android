@@ -22,6 +22,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -51,6 +54,16 @@ android {
             excludes += "META-INF/LICENSE-notice.md"
         }
     }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../keystore/debug.keystore")
+            storePassword = "BitcoinWukong"
+            keyAlias = "androiddebugkey"
+            keyPassword = "BitcoinWukong"
+        }
+    }
+
     splits {
         // Configures multiple APKs based on ABI. This helps keep the size
         // down, since PT binaries can be large.
