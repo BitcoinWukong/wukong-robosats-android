@@ -162,6 +162,7 @@ object PgpKeyGenerator {
     private fun exportPublicKey(publicKey: PGPPublicKey): String {
         val out = ByteArrayOutputStream()
         val armoredOut = ArmoredOutputStream(out)
+        armoredOut.setHeader("Version", null)
         publicKey.encode(armoredOut)
         armoredOut.close()
         return out.toString("UTF-8")
