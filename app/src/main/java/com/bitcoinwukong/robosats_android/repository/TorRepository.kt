@@ -130,6 +130,8 @@ class TorRepository(val torManager: ITorManager) {
     private suspend fun makeGeneralRequest(
         api: String,
         token: String? = null,
+        pubKey: String? = null,
+        encPrivKey: String? = null,
         queryParams: Map<String, String> = emptyMap(),
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
@@ -155,9 +157,15 @@ class TorRepository(val torManager: ITorManager) {
 
             // Build the headers
             val headers = mutableMapOf<String, String>()
-            token?.let { // Add Authorization header if token is not null
-                val hashedToken = hashTokenAsBase91(it)
-                headers["Authorization"] = "Token $hashedToken"
+            token?.let { tokenValue ->
+                val hashedToken = hashTokenAsBase91(tokenValue)
+                val authValue = buildString {
+                    append("Token $hashedToken")
+                    if (pubKey != null && encPrivKey != null) {
+                        append(" | Public ${pubKey.replace("\n", "\\")} | Private ${encPrivKey.replace("\n", "\\")}")
+                    }
+                }
+                headers["Authorization"] = authValue
             }
 
             // Build the body
@@ -201,13 +209,18 @@ class TorRepository(val torManager: ITorManager) {
             )
         }
 
-    suspend fun getRobotInfo(token: String): Result<Robot> = withContext(Dispatchers.IO) {
+    suspend fun getRobotInfo(token: String, publicKey: String?=null, encPrivKey: String?=null): Result<Robot> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "getRobotInfo: $token, $publicKey, $encPrivKey")
         makeGeneralRequest(
             api = "robot",
-            token = token
+            token = token,
+            pubKey = publicKey,
+            encPrivKey = encPrivKey
         ).fold(
             onSuccess = { jsonObject ->
-                Result.success(Robot.fromTokenAndJson(token, jsonObject))
+                val robot = Robot.fromTokenAndJson(token, jsonObject)
+                Log.d(TAG, "getRobotInfo succeeded: ${robot.token} ${robot.encryptedPrivateKey}, ${robot.publicKey}")
+                Result.success(robot)
             },
             onFailure = { e ->
                 Result.failure(e)

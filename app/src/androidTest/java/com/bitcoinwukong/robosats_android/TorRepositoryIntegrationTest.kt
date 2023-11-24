@@ -18,12 +18,43 @@ import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
 
-const val TEST_ROBOT_TOKEN = "XWdQIua1zwlK60rw00IVd64fvwbk0DyJC8ye"
-
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class TorRepositoryIntegrationTest {
     companion object {
-        private var robotToken = TEST_ROBOT_TOKEN
+        val robotToken = "C2etfi7nPeUD7rCcwAOy4XoLvEAxbTRGSK6H"
+        val publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n" +
+                "\n" +
+                "mDMEZVO9bxYJKwYBBAHaRw8BAQdAVyePBQK63FB2r5ZpIqO998WaqZjmro+LFNH+\n" +
+                "sw2raQC0TFJvYm9TYXRzIElEIGVkN2QzYjJiMmU1ODlhYjI2NzIwNjA1ZTc0MTRh\n" +
+                "YjRmYmNhMjFjYjRiMzFlNWI0ZTYyYTZmYTUxYzI0YTllYWKIjAQQFgoAPgWCZVO9\n" +
+                "bwQLCQcICZAuNFtLSY2XJAMVCAoEFgACAQIZAQKbAwIeARYhBDIhViOFpzWovPuw\n" +
+                "vC40W0tJjZckAACTeAEA+AdXmA8p6I+FFqXaFVRh5JRa5ZoO4xhGb+QY00kgZisB\n" +
+                "AJee8XdW6FHBj2J3b4M9AYqufdpvuj+lLmaVAshN9U4MuDgEZVO9bxIKKwYBBAGX\n" +
+                "VQEFAQEHQORkbvSesg9oJeCRKigTNdQ5tkgmVGXfdz/+vwBIl3E3AwEIB4h4BBgW\n" +
+                "CAAqBYJlU71vCZAuNFtLSY2XJAKbDBYhBDIhViOFpzWovPuwvC40W0tJjZckAABZ\n" +
+                "1AD/RIJM/WNb28pYqtq4XmeOaqLCrbQs2ua8mXpGBZSl8E0BALWSlbHICYTNy9L6\n" +
+                "KV0a5pXbxcXpzejcjpJmVwzuWz8P\n" +
+                "=32+r\n" +
+                "-----END PGP PUBLIC KEY BLOCK-----"
+        val encryptedPrivateKey="-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
+                "\n" +
+                "xYYEZVO9bxYJKwYBBAHaRw8BAQdAVyePBQK63FB2r5ZpIqO998WaqZjmro+L\n" +
+                "FNH+sw2raQD+CQMIHkZZZnDa6d/gHioGTKf6JevirkCBWwz8tFLGFs5DFwjD\n" +
+                "tI4ew9CJd09AUxfMq2WvTilhMNrdw2nmqtmAoaIyIo43azVT1VQoxSDnWxFv\n" +
+                "Tc1MUm9ib1NhdHMgSUQgZWQ3ZDNiMmIyZTU4OWFiMjY3MjA2MDVlNzQxNGFi\n" +
+                "NGZiY2EyMWNiNGIzMWU1YjRlNjJhNmZhNTFjMjRhOWVhYsKMBBAWCgA+BYJl\n" +
+                "U71vBAsJBwgJkC40W0tJjZckAxUICgQWAAIBAhkBApsDAh4BFiEEMiFWI4Wn\n" +
+                "Nai8+7C8LjRbS0mNlyQAAJN4AQD4B1eYDynoj4UWpdoVVGHklFrlmg7jGEZv\n" +
+                "5BjTSSBmKwEAl57xd1boUcGPYndvgz0Biq592m+6P6UuZpUCyE31TgzHiwRl\n" +
+                "U71vEgorBgEEAZdVAQUBAQdA5GRu9J6yD2gl4JEqKBM11Dm2SCZUZd93P/6/\n" +
+                "AEiXcTcDAQgH/gkDCGSRul0JyboW4JZSQVlHNVlx2mrfE1gRTh2R5hJWU9Kg\n" +
+                "aw2gET8OwWDYU4F8wKTo/s7BGn+HN4jrZeLw1k/etKUKLzuPC06KUXhj3rMF\n" +
+                "Ti3CeAQYFggAKgWCZVO9bwmQLjRbS0mNlyQCmwwWIQQyIVYjhac1qLz7sLwu\n" +
+                "NFtLSY2XJAAAWdQA/0SCTP1jW9vKWKrauF5njmqiwq20LNrmvJl6RgWUpfBN\n" +
+                "AQC1kpWxyAmEzcvS+ildGuaV28XF6c3o3I6SZlcM7ls/Dw==\n" +
+                "=YAfZ\n" +
+                "-----END PGP PRIVATE KEY BLOCK-----"
+
         private var orderId: Int? = null
     }
 
@@ -67,10 +98,10 @@ class TorRepositoryIntegrationTest {
             val torManager = TorManager(application)
 
             val torRepository = TorRepository(torManager)
-            val result = torRepository.getRobotInfo(robotToken)
+            val result = torRepository.getRobotInfo(robotToken, publicKey, encryptedPrivateKey)
 
             result.onSuccess { robotInfo ->
-                assertEquals("AffectedSiren114", robotInfo.nickname)
+                assertEquals("UptightPub730", robotInfo.nickname)
                 if (robotInfo.activeOrderId != null) {
                     val cancelResult = torRepository.performOrderAction(robotToken,
                         robotInfo.activeOrderId!!, "cancel")
