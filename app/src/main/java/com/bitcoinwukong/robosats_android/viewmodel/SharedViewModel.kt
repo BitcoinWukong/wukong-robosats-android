@@ -10,10 +10,13 @@ import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptMessage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 class SharedViewModel(
@@ -127,9 +130,9 @@ class SharedViewModel(
         val currentInfo = _robotsInfoMap.value ?: mapOf()
         val updatedInfo = currentInfo.toMutableMap().apply {
             if (robot != null) {
-                put(token, robot) // Add or update the robot info
-                if (robot.activeOrderId != null) {
-                    getOrderDetails(robot, robot.activeOrderId)
+                put(token, robot)
+                robot.activeOrderId?.let { orderId ->
+                    getOrderDetails(robot, orderId)
                 }
             } else {
                 remove(token) // Remove the robot info if robot is null
@@ -235,23 +238,26 @@ class SharedViewModel(
         viewModelScope.launch {
             val result = torRepository.getChatMessages(robot.token, orderId)
             result.onSuccess { messages ->
-                Log.d(TAG, "getChatMessages succeeded:")
+                Log.d(TAG, "getChatMessages succeeded: ")
 
                 // Sort messages by index incrementally
                 val sortedMessages = messages.sortedBy { it.index }
-                val decryptedMessagesList = mutableListOf<String>()
-
-                sortedMessages.forEach { message ->
-                    val decryptedMessage =
-                        decryptMessage(message.message, robot.encryptedPrivateKey!!, robot.token)
-                    decryptedMessagesList.add(decryptedMessage)
-                    torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage")
-                    Log.d(
-                        TAG,
-                        "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
-                    )
+                val decryptedMessagesDeferred = sortedMessages.map { message ->
+                    async(Dispatchers.IO) {
+                        robot.decryptMessage(message.message).also { decryptedMessage ->
+                            withContext(Dispatchers.Main) {
+                                torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage")
+                                Log.d(
+                                    TAG,
+                                    "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
+                                )
+                            }
+                        }
+                    }
                 }
-                // Update the LiveData with the list of decrypted messages
+
+                // Await all the decrypted messages and then post them
+                val decryptedMessagesList = decryptedMessagesDeferred.awaitAll()
                 _chatMessages.postValue(decryptedMessagesList)
             }.onFailure { e ->
                 Log.e(TAG, "getChatMessages failed: ${e.message}")

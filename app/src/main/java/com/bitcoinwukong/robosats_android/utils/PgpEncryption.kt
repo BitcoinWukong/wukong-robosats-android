@@ -38,7 +38,7 @@ object PgpKeyGenerator {
         Security.addProvider(BouncyCastleProvider())
     }
 
-    fun decryptPrivateKey(encryptedPrivateKey: String, passphrase: String): PGPPrivateKey? {
+    fun decryptPrivateKey(encryptedPrivateKey: String, passphrase: String): PGPPrivateKey {
         val secretKeyRingCollection = PGPSecretKeyRingCollection(
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedPrivateKey.toByteArray())),
             JcaKeyFingerprintCalculator()
@@ -57,10 +57,10 @@ object PgpKeyGenerator {
             }
         }
 
-        return null
+        throw IllegalArgumentException("Unable to decrypt private key $encryptedPrivateKey")
     }
 
-    private fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
+    fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
         val inputStream =
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedMessage.toByteArray()))
         val pgpObjectFactory = PGPObjectFactory(inputStream, JcaKeyFingerprintCalculator())
@@ -120,7 +120,7 @@ object PgpKeyGenerator {
         passphrase: String
     ): String {
         val pgpPrivateKey = decryptPrivateKey(encryptedPrivateKey, passphrase)
-        return decryptMessage(encryptedMessage.replace("\\", "\n"), pgpPrivateKey!!)
+        return decryptMessage(encryptedMessage.replace("\\", "\n"), pgpPrivateKey)
     }
 
     fun readPublicKey(armoredPublicKey: String): PGPPublicKey? {

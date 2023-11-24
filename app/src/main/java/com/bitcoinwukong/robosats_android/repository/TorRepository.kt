@@ -219,7 +219,7 @@ class TorRepository(val torManager: ITorManager) {
         ).fold(
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
-                Log.d(TAG, "getRobotInfo succeeded: ${robot.token} ${robot.encryptedPrivateKey}, ${robot.publicKey}")
+                Log.d(TAG, "getRobotInfo succeeded: ${robot.token}")
                 Result.success(robot)
             },
             onFailure = { e ->
