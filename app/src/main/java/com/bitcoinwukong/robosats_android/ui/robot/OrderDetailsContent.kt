@@ -55,7 +55,11 @@ fun OrderDetailsContent(
             LoadingContent(orderId)
         } else {
             val order = activeOrder ?: return
-            OrderStatusContent(order, viewModel, robot, orderId)
+            Column(
+                modifier = Modifier
+                    .weight(1f)) {
+                OrderStatusContent(order, viewModel, robot, orderId)
+            }
             RefreshButton { viewModel.getOrderDetails(robot, orderId, true) }
         }
     }
