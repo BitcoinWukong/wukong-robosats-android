@@ -239,6 +239,7 @@ class SharedViewModel(
                 messages.forEach { message ->
                     val decryptedMessage =
                         decryptMessage(message.message, robot.encryptedPrivateKey!!, robot.token)
+                    torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage")
                     Log.d(
                         TAG,
                         "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
