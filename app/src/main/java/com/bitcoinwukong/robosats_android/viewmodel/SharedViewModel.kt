@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -236,7 +237,12 @@ class SharedViewModel(
             result.onSuccess { messages ->
                 Log.d(TAG, "getChatMessages succeeded:")
                 messages.forEach { message ->
-                    Log.d(TAG, "Message: $message")
+                    val decryptedMessage =
+                        decryptMessage(message.message, robot.encryptedPrivateKey!!, robot.token)
+                    Log.d(
+                        TAG,
+                        "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
+                    )
                 }
             }.onFailure { e ->
                 Log.e(TAG, "getChatMessages failed: ${e.message}")
