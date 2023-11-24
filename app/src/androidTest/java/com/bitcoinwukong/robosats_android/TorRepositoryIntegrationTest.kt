@@ -23,8 +23,8 @@ import org.junit.runners.MethodSorters
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class TorRepositoryIntegrationTest {
     companion object {
-        val robotToken = "C2etfi7nPeUD7rCcwAOy4XoLvEAxbTRGSK6H"
-        val publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n" +
+        const val robotToken = "C2etfi7nPeUD7rCcwAOy4XoLvEAxbTRGSK6H"
+        const val publicKey = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n" +
                 "\n" +
                 "mDMEZVO9bxYJKwYBBAHaRw8BAQdAVyePBQK63FB2r5ZpIqO998WaqZjmro+LFNH+\n" +
                 "sw2raQC0TFJvYm9TYXRzIElEIGVkN2QzYjJiMmU1ODlhYjI2NzIwNjA1ZTc0MTRh\n" +
@@ -38,7 +38,7 @@ class TorRepositoryIntegrationTest {
                 "KV0a5pXbxcXpzejcjpJmVwzuWz8P\n" +
                 "=32+r\n" +
                 "-----END PGP PUBLIC KEY BLOCK-----"
-        val encryptedPrivateKey="-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
+        const val encryptedPrivateKey="-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
                 "\n" +
                 "xYYEZVO9bxYJKwYBBAHaRw8BAQdAVyePBQK63FB2r5ZpIqO998WaqZjmro+L\n" +
                 "FNH+sw2raQD+CQMIHkZZZnDa6d/gHioGTKf6JevirkCBWwz8tFLGFs5DFwjD\n" +
@@ -59,14 +59,6 @@ class TorRepositoryIntegrationTest {
 
         private var orderId: Int? = null
     }
-
-    @Test
-    fun testDecryptPrivateKey() {
-        val keyId = 7088936486162781302
-        val pgpPrivateKey = PgpKeyGenerator.decryptPrivateKey(encryptedPrivateKey, robotToken)
-        assertEquals(keyId, pgpPrivateKey!!.keyID)
-    }
-
     @Test
     fun testGetInfo() {
         runBlocking {

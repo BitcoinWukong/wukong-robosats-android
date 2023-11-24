@@ -120,7 +120,7 @@ object PgpKeyGenerator {
         passphrase: String
     ): String {
         val pgpPrivateKey = decryptPrivateKey(encryptedPrivateKey, passphrase)
-        return decryptMessage(encryptedMessage, pgpPrivateKey!!)
+        return decryptMessage(encryptedMessage.replace("\\", "\n"), pgpPrivateKey!!)
     }
 
     fun readPublicKey(armoredPublicKey: String): PGPPublicKey? {
