@@ -10,6 +10,8 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.network.TorManager
 import com.bitcoinwukong.robosats_android.repository.TorRepository
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
+import com.bitcoinwukong.robosats_android.utils.generateSecureToken
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -81,6 +83,32 @@ class TorRepositoryIntegrationTest {
                 assertTrue(numPublicBuyOrders > 0)
             }.onFailure { e ->
                 fail("testGetInfo failed: ${e.message}")
+            }
+        }
+    }
+
+    @Test
+    fun testGenerateRobot() {
+        val token = generateSecureToken()
+        val (pubkey, encPrivKey) = PgpKeyGenerator.generateKeyPair("12345", token)
+        runBlocking {
+            // Context of the app under test.
+            val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+            assertEquals("com.bitcoinwukong.robosats_android", appContext.packageName)
+
+            // Cast the context to Application.
+            val application = appContext.applicationContext as Application
+
+            val torManager = TorManager(application)
+
+            val torRepository = TorRepository(torManager)
+            val result = torRepository.getRobotInfo(token, pubkey, encPrivKey)
+
+            result.onSuccess { robotInfo ->
+                assertEquals(pubkey, robotInfo.publicKey)
+                assertEquals(encPrivKey, robotInfo.encryptedPrivateKey)
+            }.onFailure { e ->
+                fail("Post request failed: ${e.message}")
             }
         }
     }

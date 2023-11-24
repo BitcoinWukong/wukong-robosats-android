@@ -149,7 +149,7 @@ object PgpKeyGenerator {
             null,
             JcaPGPContentSignerBuilder(keyPair.publicKey.algorithm, PGPUtil.SHA256),
             JcePBESecretKeyEncryptorBuilder(
-                PGPEncryptedData.CAST5,
+                PGPEncryptedData.AES_128,
                 digestCalculator
             ).setProvider("BC").build(passphrase)
         )
