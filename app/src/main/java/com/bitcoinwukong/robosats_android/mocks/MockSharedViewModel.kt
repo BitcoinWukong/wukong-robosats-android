@@ -72,7 +72,7 @@ class MockSharedViewModel(
         Log.d("MockSharedViewModel", "pauseResumeOrder called")
     }
 
-    override fun getChatMessages(robot: Robot, orderId: Int, offset: Int) {
+    override fun getChatMessages(robot: Robot, orderId: Int) {
         Log.d("MockSharedViewModel", "getChatMessages called")
     }
 

@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -91,7 +94,7 @@ private fun OrderStatusContent(
 
         order.isChatting() -> {
             viewModel.getChatMessages(robot, orderId)
-            Text("Order in progress...")
+            ChatMessages(viewModel)
         }
         else -> when (order.status) {
             OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
@@ -99,6 +102,28 @@ private fun OrderStatusContent(
             OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
             else -> DisplayUnknownStatus(order)
         }
+    }
+}
+
+@Composable
+private fun ChatMessages(viewModel: ISharedViewModel) {
+    val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
+
+    if (chatMessages != null) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(chatMessages) { message ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Text(message)
+                }
+            }
+        }
+    } else {
+        Text("Loading messages...")
     }
 }
 

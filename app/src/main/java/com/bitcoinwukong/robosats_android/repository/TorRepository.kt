@@ -230,12 +230,10 @@ class TorRepository(val torManager: ITorManager) {
 
     suspend fun getChatMessages(
         token: String,
-        orderId: Int,
-        offset: Int = 0
+        orderId: Int
     ): Result<List<Message>> = withContext(Dispatchers.IO) {
         val queryParams = mapOf(
             "order_id" to orderId.toString(),
-            "offset" to offset.toString(),
         )
 
         makeGeneralRequest(

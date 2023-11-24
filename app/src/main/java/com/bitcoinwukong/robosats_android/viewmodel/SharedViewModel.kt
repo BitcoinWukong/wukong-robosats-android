@@ -231,20 +231,28 @@ class SharedViewModel(
         }
     }
 
-    override fun getChatMessages(robot: Robot, orderId: Int, offset: Int) {
+    override fun getChatMessages(robot: Robot, orderId: Int) {
         viewModelScope.launch {
-            val result = torRepository.getChatMessages(robot.token, orderId, offset)
+            val result = torRepository.getChatMessages(robot.token, orderId)
             result.onSuccess { messages ->
                 Log.d(TAG, "getChatMessages succeeded:")
-                messages.forEach { message ->
+
+                // Sort messages by index incrementally
+                val sortedMessages = messages.sortedBy { it.index }
+                val decryptedMessagesList = mutableListOf<String>()
+
+                sortedMessages.forEach { message ->
                     val decryptedMessage =
                         decryptMessage(message.message, robot.encryptedPrivateKey!!, robot.token)
+                    decryptedMessagesList.add(decryptedMessage)
                     torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage")
                     Log.d(
                         TAG,
                         "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
                     )
                 }
+                // Update the LiveData with the list of decrypted messages
+                _chatMessages.postValue(decryptedMessagesList)
             }.onFailure { e ->
                 Log.e(TAG, "getChatMessages failed: ${e.message}")
             }
