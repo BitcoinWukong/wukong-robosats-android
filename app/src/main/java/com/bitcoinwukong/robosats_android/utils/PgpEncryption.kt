@@ -32,7 +32,9 @@ import java.util.Date
 
 object PgpKeyGenerator {
     init {
-        // Register the Bouncy Castle provider
+        // Remove the built-in Android Bouncy Castle security provider and replace it with
+        // the standard one that has more algorithms
+        Security.removeProvider("BC")
         Security.addProvider(BouncyCastleProvider())
     }
 
@@ -149,7 +151,7 @@ object PgpKeyGenerator {
             null,
             JcaPGPContentSignerBuilder(keyPair.publicKey.algorithm, PGPUtil.SHA256),
             JcePBESecretKeyEncryptorBuilder(
-                PGPEncryptedData.AES_128,
+                PGPEncryptedData.CAST5,
                 digestCalculator
             ).setProvider("BC").build(passphrase)
         )
