@@ -46,6 +46,9 @@ class TorRepository(val torManager: ITorManager) {
     private var _isTorReady = MutableLiveData(false)
     val isTorReady: LiveData<Boolean> get() = _isTorReady
 
+    private var _loadingRobots = MutableLiveData<Set<Robot>>(emptySet())
+    val loadingRobots: LiveData<Set<Robot>> get() = _loadingRobots
+
     fun restartTor() {
         torManager.restart()
     }
@@ -220,6 +223,18 @@ class TorRepository(val torManager: ITorManager) {
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
                 Log.d(TAG, "getRobotInfo succeeded: ${robot.token}")
+                if (robot.pgpPrivateKey == null) {
+                    val currentSet = _loadingRobots.value
+                    if (currentSet.isNullOrEmpty()) {
+                        // If the current set is null or empty, create a new set with the new robot
+                        _loadingRobots.postValue(setOf(robot))
+                    } else {
+                        // If the current set is not empty, add the new robot to it
+                        val updatedSet = currentSet.toMutableSet()
+                        updatedSet.add(robot)
+                        _loadingRobots.postValue(updatedSet)
+                    }
+                }
                 Result.success(robot)
             },
             onFailure = { e ->

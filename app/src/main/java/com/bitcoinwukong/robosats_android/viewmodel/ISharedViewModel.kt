@@ -13,6 +13,7 @@ interface ISharedViewModel {
 
     val isUpdating: LiveData<Boolean>
     val isTorReady: LiveData<Boolean>
+    val loadingRobots: LiveData<Set<Robot>>
 
     val robotTokens: LiveData<Set<String>>
     val robotsInfoMap: LiveData<Map<String, Robot>>

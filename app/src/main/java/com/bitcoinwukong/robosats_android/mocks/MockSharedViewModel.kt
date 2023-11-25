@@ -31,6 +31,7 @@ class MockSharedViewModel(
     override val lastUpdated: LiveData<LocalDateTime> = MutableLiveData(LocalDateTime.now())
     override val isUpdating: LiveData<Boolean> = MutableLiveData(isUpdating)
     override val isTorReady: LiveData<Boolean> = MutableLiveData(isTorReady)
+    override val loadingRobots: LiveData<Set<Robot>> = MutableLiveData(emptySet())
 
     override fun restartTor() {
         Log.d("MockSharedViewModel", "restartTor called")

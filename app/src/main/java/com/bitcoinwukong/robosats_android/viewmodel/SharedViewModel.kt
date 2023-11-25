@@ -38,6 +38,8 @@ class SharedViewModel(
     override val isUpdating: LiveData<Boolean> get() = torRepository.isUpdating
     override val isTorReady: LiveData<Boolean> get() = torRepository.isTorReady
 
+    override val loadingRobots: LiveData<Set<Robot>> get() = torRepository.loadingRobots
+
     private var _robotTokens = MutableLiveData<Set<String>>()
     override val robotTokens: LiveData<Set<String>> get() = _robotTokens
 
