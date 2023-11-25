@@ -8,6 +8,7 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
+import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
@@ -46,7 +47,16 @@ fun <T> WKDropdownMenu(
             },
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = isDropdownEnabled
+            enabled = isDropdownEnabled,
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = MaterialTheme.colorScheme.onSurface,
+                disabledTextColor = Color.Gray,
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                disabledLabelColor = Color.Gray,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledBorderColor = Color.Gray
+            )
         )
         if (isDropdownEnabled) {
             DropdownMenu(
@@ -60,7 +70,7 @@ fun <T> WKDropdownMenu(
                         onItemSelected(item)
                         expanded = false
                     }) {
-                        Text(text = item.toString())
+                        Text(text = item.toString(), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
