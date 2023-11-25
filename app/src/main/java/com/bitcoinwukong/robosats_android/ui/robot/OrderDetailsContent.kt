@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -52,7 +55,11 @@ fun OrderDetailsContent(
             LoadingContent(orderId)
         } else {
             val order = activeOrder ?: return
-            OrderStatusContent(order, viewModel, robot, orderId)
+            Column(
+                modifier = Modifier
+                    .weight(1f)) {
+                OrderStatusContent(order, viewModel, robot, orderId)
+            }
             RefreshButton { viewModel.getOrderDetails(robot, orderId, true) }
         }
     }
@@ -89,13 +96,38 @@ private fun OrderStatusContent(
             order
         )
 
-        order.isChatting() -> Text("Order in progress...")
+        order.isChatting() -> {
+            viewModel.getChatMessages(robot, orderId)
+            ChatMessages(viewModel)
+        }
         else -> when (order.status) {
             OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
             OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
             OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
             else -> DisplayUnknownStatus(order)
         }
+    }
+}
+
+@Composable
+private fun ChatMessages(viewModel: ISharedViewModel) {
+    val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
+
+    if (chatMessages != null) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(chatMessages) { message ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Text(message)
+                }
+            }
+        }
+    } else {
+        Text("Loading messages...")
     }
 }
 

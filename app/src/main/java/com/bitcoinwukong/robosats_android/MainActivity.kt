@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
+import com.bitcoinwukong.robosats_android.model.PgpKeyManager
 import com.bitcoinwukong.robosats_android.repository.TorRepository
 import com.bitcoinwukong.robosats_android.ui.MainScreen
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
@@ -20,6 +21,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        PgpKeyManager.initialize(app)
 
         // Create the view model
         val torRepository = TorRepository(app.torManager)

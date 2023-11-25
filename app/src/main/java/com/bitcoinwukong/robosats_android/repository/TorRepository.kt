@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.bitcoinwukong.robosats_android.model.Currency
+import com.bitcoinwukong.robosats_android.model.Message
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
@@ -129,6 +130,8 @@ class TorRepository(val torManager: ITorManager) {
     private suspend fun makeGeneralRequest(
         api: String,
         token: String? = null,
+        pubKey: String? = null,
+        encPrivKey: String? = null,
         queryParams: Map<String, String> = emptyMap(),
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
@@ -154,9 +157,15 @@ class TorRepository(val torManager: ITorManager) {
 
             // Build the headers
             val headers = mutableMapOf<String, String>()
-            token?.let { // Add Authorization header if token is not null
-                val hashedToken = hashTokenAsBase91(it)
-                headers["Authorization"] = "Token $hashedToken"
+            token?.let { tokenValue ->
+                val hashedToken = hashTokenAsBase91(tokenValue)
+                val authValue = buildString {
+                    append("Token $hashedToken")
+                    if (pubKey != null && encPrivKey != null) {
+                        append(" | Public ${pubKey.replace("\n", "\\")} | Private ${encPrivKey.replace("\n", "\\")}")
+                    }
+                }
+                headers["Authorization"] = authValue
             }
 
             // Build the body
@@ -200,13 +209,58 @@ class TorRepository(val torManager: ITorManager) {
             )
         }
 
-    suspend fun getRobotInfo(token: String): Result<Robot> = withContext(Dispatchers.IO) {
+    suspend fun getRobotInfo(token: String, publicKey: String?=null, encPrivKey: String?=null): Result<Robot> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "getRobotInfo: $token, $publicKey, $encPrivKey")
         makeGeneralRequest(
             api = "robot",
-            token = token
+            token = token,
+            pubKey = publicKey,
+            encPrivKey = encPrivKey
         ).fold(
             onSuccess = { jsonObject ->
-                Result.success(Robot.fromTokenAndJson(token, jsonObject))
+                val robot = Robot.fromTokenAndJson(token, jsonObject)
+                Log.d(TAG, "getRobotInfo succeeded: ${robot.token}")
+                Result.success(robot)
+            },
+            onFailure = { e ->
+                Result.failure(e)
+            }
+        )
+    }
+
+    suspend fun getChatMessages(
+        token: String,
+        orderId: Int
+    ): Result<List<Message>> = withContext(Dispatchers.IO) {
+        val queryParams = mapOf(
+            "order_id" to orderId.toString(),
+        )
+
+        makeGeneralRequest(
+            api = "chat",
+            token = token,
+            queryParams = queryParams,
+        ).fold(
+            onSuccess = { jsonObject ->
+                val messagesJsonArray = jsonObject.optJSONArray("messages")
+                val messages = mutableListOf<Message>()
+
+                if (messagesJsonArray != null) {
+                    for (i in 0 until messagesJsonArray.length()) {
+                        val messageJsonObject = messagesJsonArray.optJSONObject(i)
+                        messageJsonObject?.let {
+                            val message = Message(
+                                index = it.optInt("index"),
+                                time = it.optString("time"),
+                                message = it.optString("message"),
+                                nick = it.optString("nick")
+                            )
+                            messages.add(message)
+                        }
+                    }
+                }
+
+                Result.success(messages)
             },
             onFailure = { e ->
                 Result.failure(e)
@@ -232,7 +286,7 @@ class TorRepository(val torManager: ITorManager) {
         latitude: String? = null,
         longitude: String? = null
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
-        val formBodyParams = mutableMapOf<String, String>(
+        val formBodyParams = mutableMapOf(
             "type" to type.value.toString(),
             "currency" to currency.id.toString(),
             "has_range" to hasRange.toString(),
