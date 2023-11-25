@@ -1,6 +1,10 @@
 package com.bitcoinwukong.robosats_android.utils
 
 import org.bouncycastle.bcpg.ArmoredOutputStream
+import org.bouncycastle.bcpg.BCPGInputStream
+import org.bouncycastle.bcpg.BCPGOutputStream
+import org.bouncycastle.bcpg.ECSecretBCPGKey
+import org.bouncycastle.bcpg.PublicSubkeyPacket
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
 import org.bouncycastle.openpgp.PGPEncryptedDataList
@@ -25,9 +29,12 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.io.InputStream
 import java.security.KeyPairGenerator
 import java.security.Security
+import java.util.Base64
 import java.util.Date
 
 object PgpKeyGenerator {
@@ -175,4 +182,29 @@ object PgpKeyGenerator {
         armoredOut.close()
         return out.toString("UTF-8")
     }
+
+    fun serializePGPPrivateKey(privateKey: PGPPrivateKey): String {
+        val byteStream = ByteArrayOutputStream()
+        val dataOut = DataOutputStream(byteStream)
+        dataOut.writeLong(privateKey.keyID)
+        val bcpgOut = BCPGOutputStream(dataOut)
+        bcpgOut.writePacket(privateKey.publicKeyPacket)
+
+        val privateDataPacket = privateKey.privateKeyDataPacket as ECSecretBCPGKey
+        bcpgOut.writeObject(privateDataPacket)
+        return Base64.getEncoder().encodeToString(byteStream.toByteArray())
+    }
+
+    fun deserializePGPPrivateKey(serializedKey: String): PGPPrivateKey {
+        val data = Base64.getDecoder().decode(serializedKey)
+        val byteStream = ByteArrayInputStream(data)
+        val dataIn = DataInputStream(byteStream)
+        val keyID = dataIn.readLong()
+        val bcpgIn = BCPGInputStream(dataIn)
+        val publicKeyPacket = bcpgIn.readPacket() as PublicSubkeyPacket
+        val privateDataPacket = ECSecretBCPGKey(bcpgIn)
+
+        return PGPPrivateKey(keyID, publicKeyPacket, privateDataPacket)
+    }
+
 }
