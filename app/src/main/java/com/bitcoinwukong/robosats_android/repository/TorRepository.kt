@@ -57,6 +57,17 @@ class TorRepository(val torManager: ITorManager) {
         private val TAG = TorRepository::class.java.simpleName
     }
 
+    init {
+        Robot.onPrivateKeyDecrypted = { robot ->
+            removeRobot(robot)
+        }
+    }
+
+    private fun removeRobot(robot: Robot) {
+        val currentSet = _loadingRobots.value.orEmpty()
+        _loadingRobots.postValue(currentSet - robot)
+    }
+
     private fun createHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
             .proxy(Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", TOR_SOCKS_PORT)))
@@ -212,7 +223,11 @@ class TorRepository(val torManager: ITorManager) {
             )
         }
 
-    suspend fun getRobotInfo(token: String, publicKey: String?=null, encPrivKey: String?=null): Result<Robot> = withContext(Dispatchers.IO) {
+    suspend fun getRobotInfo(
+        token: String,
+        publicKey: String? = null,
+        encPrivKey: String? = null
+    ): Result<Robot> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getRobotInfo: $token, $publicKey, $encPrivKey")
         makeGeneralRequest(
             api = "robot",
@@ -224,16 +239,8 @@ class TorRepository(val torManager: ITorManager) {
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
                 Log.d(TAG, "getRobotInfo succeeded: ${robot.token}")
                 if (robot.pgpPrivateKey == null) {
-                    val currentSet = _loadingRobots.value
-                    if (currentSet.isNullOrEmpty()) {
-                        // If the current set is null or empty, create a new set with the new robot
-                        _loadingRobots.postValue(setOf(robot))
-                    } else {
-                        // If the current set is not empty, add the new robot to it
-                        val updatedSet = currentSet.toMutableSet()
-                        updatedSet.add(robot)
-                        _loadingRobots.postValue(updatedSet)
-                    }
+                    val currentSet = _loadingRobots.value.orEmpty()
+                    _loadingRobots.postValue(currentSet + robot)
                 }
                 Result.success(robot)
             },

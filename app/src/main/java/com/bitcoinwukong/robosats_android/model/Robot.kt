@@ -48,11 +48,15 @@ data class Robot(
                 // If decryption is in progress, wait for it
                 CoroutineScope(Dispatchers.IO).launch {
                     robot.pgpPrivateKey = PgpKeyManager.waitForDecryption(encryptedKey)
+                    if (robot.pgpPrivateKey != null) {
+                        onPrivateKeyDecrypted(robot)
+                    }
                 }
             }
-
             return robot
         }
+
+        var onPrivateKeyDecrypted: (Robot) -> Unit = {}
     }
 
     suspend fun decryptMessage(
