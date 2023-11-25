@@ -38,7 +38,7 @@ class EncryptionTest {
             encryptedPrivateKey,
             token
         )
-        Assert.assertEquals(keyId, pgpPrivateKey!!.keyID)
+        Assert.assertEquals(keyId, pgpPrivateKey.keyID)
     }
 
     @Test
@@ -52,5 +52,4 @@ class EncryptionTest {
             PgpKeyGenerator.decryptMessage(encryptedMessage_2, encryptedPrivateKey, token)
         )
     }
-
 }
