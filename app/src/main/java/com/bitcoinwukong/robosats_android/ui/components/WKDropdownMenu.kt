@@ -52,6 +52,8 @@ fun <T> WKDropdownMenu(
                 textColor = MaterialTheme.colorScheme.onSurface,
                 disabledTextColor = Color.Gray,
                 backgroundColor = MaterialTheme.colorScheme.surface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary, // Adjust for better visibility in dark theme
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant, // Adjust for better visibility in dark theme
                 disabledLabelColor = Color.Gray,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
