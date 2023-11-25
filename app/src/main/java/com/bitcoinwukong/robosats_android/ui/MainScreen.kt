@@ -1,6 +1,5 @@
 package com.bitcoinwukong.robosats_android.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,11 +83,12 @@ fun RobotsLoadingScreen(loadingRobots: Set<Robot>) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .background(MaterialTheme.colors.background),
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center, // Centers vertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Loading robots...",
+            "Decrypting private key for robot",
             style = MaterialTheme.typography.h6,
             color = MaterialTheme.colors.onBackground
         )
