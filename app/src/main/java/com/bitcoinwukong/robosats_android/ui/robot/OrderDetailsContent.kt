@@ -103,7 +103,7 @@ private fun OrderStatusContent(
 
         order.isChatting() -> {
             viewModel.getChatMessages(robot, orderId)
-            ChatMessages(viewModel)
+            ChatMessages(viewModel, order)
         }
 
         else -> when (order.status) {
@@ -120,24 +120,48 @@ private fun OrderStatusContent(
 }
 
 @Composable
-private fun ChatMessages(viewModel: ISharedViewModel) {
+private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
     val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
 
-    if (chatMessages != null) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Display chat messages
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.weight(1f)
         ) {
             items(chatMessages) { message ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Text(message)
-                }
+                ChatMessageRow(message)
             }
         }
-    } else {
+
+        // Conditional button based on order status and role
+        if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller()) {
+            Button(
+                onClick = { viewModel.confirmOrderFiatReceived(order) },
+                modifier = Modifier
+                    .padding(8.dp)
+            ) {
+                Text("Confirm fiat received")
+            }
+        }
+    }
+
+    // Loading state
+    if (chatMessages.isEmpty()) {
         Text("Loading messages...")
+    }
+}
+
+@Composable
+private fun ChatMessageRow(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Text(message)
     }
 }
 
@@ -178,7 +202,8 @@ private fun DisplayWaitingForBuyerInvoiceDetails(order: OrderData) {
         Text(
             text = "If the buyer doesn't submit their invoice before ${
                 order.expiresAt?.format(
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                )
             },",
             style = MaterialTheme.typography.body1
         )

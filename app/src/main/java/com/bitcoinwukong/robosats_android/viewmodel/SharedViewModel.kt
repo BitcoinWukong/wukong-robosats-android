@@ -215,6 +215,22 @@ class SharedViewModel(
         }
     }
 
+    override fun confirmOrderFiatReceived(orderData: OrderData) {
+        val robot = _selectedRobot.value ?: return
+        viewModelScope.launch {
+            val result = torRepository.confirmOrderFiatReceived(
+                robot.token,
+                orderData.id!!
+            )
+
+            result.onSuccess {
+                fetchRobotInfo(robot.token)
+            }.onFailure { e ->
+                Log.e(TAG, "Error in confirmOrderFiatReceived: ${e.message}")
+            }
+        }
+    }
+
     override fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean) {
         Log.d(TAG, "getting order details: $orderId")
 
