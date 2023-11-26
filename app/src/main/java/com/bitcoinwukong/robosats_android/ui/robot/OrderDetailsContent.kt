@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -27,6 +28,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -122,6 +126,7 @@ private fun OrderStatusContent(
 @Composable
 private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
     val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
+    var showConfirmationDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -138,7 +143,7 @@ private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
         // Conditional button based on order status and role
         if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller()) {
             Button(
-                onClick = { viewModel.confirmOrderFiatReceived(order) },
+                onClick = { showConfirmationDialog = true },
                 modifier = Modifier
                     .padding(8.dp)
             ) {
@@ -150,6 +155,27 @@ private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
     // Loading state
     if (chatMessages.isEmpty()) {
         Text("Loading messages...")
+    }
+
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = { Text("Confirmation") },
+            text = { Text("Are you sure you have received your fiat payment? This action is irreversible!") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.confirmOrderFiatReceived(order)
+                    showConfirmationDialog = false
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showConfirmationDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
     }
 }
 

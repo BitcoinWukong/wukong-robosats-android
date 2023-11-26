@@ -55,7 +55,7 @@ class SharedViewModel(
     private var _activeOrder = MutableLiveData<OrderData?>(null)
     override val activeOrder: LiveData<OrderData?> get() = _activeOrder
 
-    private var _chatMessages = MutableLiveData<List<String>>(null)
+    private var _chatMessages = MutableLiveData<List<String>>(emptyList())
 
     override val chatMessages: LiveData<List<String>> get() = _chatMessages
 
