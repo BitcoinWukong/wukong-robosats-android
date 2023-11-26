@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -28,6 +30,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
@@ -37,6 +40,7 @@ import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun OrderDetailsContent(
@@ -108,6 +112,7 @@ private fun OrderStatusContent(
             OrderStatus.WAITING_FOR_MAKER_BOND, OrderStatus.WAITING_FOR_TAKER_BOND -> DisplayWaitingForBondDetails(
                 order
             )
+
             OrderStatus.WAITING_ONLY_FOR_BUYER_INVOICE -> DisplayWaitingForBuyerInvoiceDetails(order)
             else -> DisplayUnknownStatus(order)
         }
@@ -164,8 +169,27 @@ private fun DisplayPublicOrderDetails(
 
 @Composable
 private fun DisplayWaitingForBuyerInvoiceDetails(order: OrderData) {
-    Text("We're now waiting for buyer to provide their invoice for receiving the Bitcoin.")
+    Column {
+        Text(
+            text = "We're now waiting for the buyer to provide their invoice for receiving the Bitcoin.",
+            style = MaterialTheme.typography.body1
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "If the buyer doesn't submit their invoice before ${
+                order.expiresAt?.format(
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+            },",
+            style = MaterialTheme.typography.body1
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "you will receive a compensation.",
+            style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+        )
+    }
 }
+
 
 @Composable
 private fun DisplayPausedOrderDetails(
@@ -274,7 +298,7 @@ fun PauseOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    Row(modifier = Modifier.width(350.dp)) {
+    Row(modifier = Modifier.size(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel, robot1
         )
@@ -292,7 +316,7 @@ fun ResumeOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    Row(modifier = Modifier.width(350.dp)) {
+    Row(modifier = Modifier.size(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel, robot1
         )
@@ -315,7 +339,7 @@ fun WaitingForMakerBondOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    Row(modifier = Modifier.width(350.dp)) {
+    Row(modifier = Modifier.size(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel, robot1
         )
