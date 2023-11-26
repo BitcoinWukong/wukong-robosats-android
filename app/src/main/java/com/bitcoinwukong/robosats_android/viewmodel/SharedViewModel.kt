@@ -29,7 +29,7 @@ class SharedViewModel(
 
     override val torManagerEvents: LiveData<String> = torRepository.torManager.events
 
-    private val _orders = MutableLiveData<List<OrderData>>()
+    private val _orders = MutableLiveData<List<OrderData>>(emptyList())
     override val orders: LiveData<List<OrderData>> get() = _orders
 
     private val _lastUpdated = MutableLiveData<LocalDateTime>()
@@ -40,10 +40,10 @@ class SharedViewModel(
 
     override val loadingRobots: LiveData<Set<Robot>> get() = torRepository.loadingRobots
 
-    private var _robotTokens = MutableLiveData<Set<String>>()
+    private var _robotTokens = MutableLiveData<Set<String>>(emptySet())
     override val robotTokens: LiveData<Set<String>> get() = _robotTokens
 
-    private val _robotsInfoMap = MutableLiveData<Map<String, Robot>>(mapOf())
+    private val _robotsInfoMap = MutableLiveData<Map<String, Robot>>(emptyMap())
     override val robotsInfoMap: LiveData<Map<String, Robot>> get() = _robotsInfoMap
 
 
