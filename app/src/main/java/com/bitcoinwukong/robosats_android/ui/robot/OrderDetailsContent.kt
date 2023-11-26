@@ -57,7 +57,8 @@ fun OrderDetailsContent(
             val order = activeOrder ?: return
             Column(
                 modifier = Modifier
-                    .weight(1f)) {
+                    .weight(1f)
+            ) {
                 OrderStatusContent(order, viewModel, robot, orderId)
             }
             RefreshButton { viewModel.getOrderDetails(robot, orderId, true) }
@@ -100,10 +101,14 @@ private fun OrderStatusContent(
             viewModel.getChatMessages(robot, orderId)
             ChatMessages(viewModel)
         }
+
         else -> when (order.status) {
             OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
             OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
-            OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
+            OrderStatus.WAITING_FOR_MAKER_BOND, OrderStatus.WAITING_FOR_TAKER_BOND -> DisplayWaitingForBondDetails(
+                order
+            )
+            OrderStatus.WAITING_ONLY_FOR_BUYER_INVOICE -> DisplayWaitingForBuyerInvoiceDetails(order)
             else -> DisplayUnknownStatus(order)
         }
     }
@@ -158,6 +163,11 @@ private fun DisplayPublicOrderDetails(
 }
 
 @Composable
+private fun DisplayWaitingForBuyerInvoiceDetails(order: OrderData) {
+    Text("We're now waiting for buyer to provide their invoice for receiving the Bitcoin.")
+}
+
+@Composable
 private fun DisplayPausedOrderDetails(
     viewModel: ISharedViewModel, robot: Robot, orderId: Int
 ) {
@@ -168,9 +178,9 @@ private fun DisplayPausedOrderDetails(
 }
 
 @Composable
-private fun DisplayWaitingForMakerBondDetails(order: OrderData) {
+private fun DisplayWaitingForBondDetails(order: OrderData) {
     order.bondInvoice?.let { bondInvoice ->
-        Text("Waiting for maker bond:")
+        Text("Waiting for your escrow bond:")
         Spacer(Modifier.height(16.dp))
         InvoiceDisplaySection(bondInvoice)
     }
