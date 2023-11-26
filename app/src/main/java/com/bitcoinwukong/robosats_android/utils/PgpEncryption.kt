@@ -131,36 +131,51 @@ object PgpKeyGenerator {
     }
 
     fun decodeEncryptedMessage(encryptedMessage: String): PGPEncryptedDataList {
+        val encryptedMessage = encryptedMessage.replace("\\", "\n")
         val inputStream =
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedMessage.toByteArray()))
         val pgpObjectFactory = PGPObjectFactory(inputStream, JcaKeyFingerprintCalculator())
         return pgpObjectFactory.nextObject() as PGPEncryptedDataList
     }
 
+    fun getEncryptedData(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): PGPPublicKeyEncryptedData {
+        for (pgpData in decodeEncryptedMessage(encryptedMessage)) {
+            if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
+                return pgpData
+            }
+        }
+
+        throw IllegalArgumentException("No encrypted data found for the provided private key")
+    }
+
+    fun decryptMessageContent(pgpData: PGPPublicKeyEncryptedData, pgpPrivateKey: PGPPrivateKey): String {
+        val dataDecryptorFactory =
+            JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
+        val clearData = pgpData.getDataStream(dataDecryptorFactory)
+
+        val plainFactory = PGPObjectFactory(clearData, JcaKeyFingerprintCalculator())
+        var messageContent: String? = null
+
+        val pgpObjectsList = plainFactory.asSequence().toList()
+        for (pgpObject in pgpObjectsList) {
+            if (pgpObject is PGPLiteralData) {
+                val literalDataInputStream = pgpObject.inputStream
+                messageContent = literalDataInputStream.bufferedReader().readText()
+                break
+            }
+        }
+
+        if (messageContent != null) {
+            return messageContent
+        }
+
+        throw IllegalArgumentException("Unable to decrypt the message content with the provided private key")
+    }
+
     fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
         for (pgpData in decodeEncryptedMessage(encryptedMessage)) {
             if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
-                val dataDecryptorFactory =
-                    JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
-                val clearData = pgpData.getDataStream(dataDecryptorFactory)
-
-                val plainFactory = PGPObjectFactory(clearData, JcaKeyFingerprintCalculator())
-                var messageContent: String? = null
-
-                while (true) {
-                    val pgpObject = plainFactory.nextObject() ?: break
-
-                    if (pgpObject is PGPLiteralData) {
-                        val literalDataInputStream = pgpObject.inputStream
-                        messageContent = literalDataInputStream.bufferedReader().readText()
-                        break
-                    }
-                    // Handle other object types like PGPOnePassSignatureList if needed
-                }
-
-                if (messageContent != null) {
-                    return messageContent
-                }
+                return decryptMessageContent(pgpData, pgpPrivateKey)
             }
         }
 
@@ -192,7 +207,7 @@ object PgpKeyGenerator {
         passphrase: String
     ): String {
         val pgpPrivateKey = decryptPrivateKey(encryptedPrivateKey, passphrase)
-        return decryptMessage(encryptedMessage.replace("\\", "\n"), pgpPrivateKey)
+        return decryptMessage(encryptedMessage, pgpPrivateKey)
     }
 
     fun readPublicKey(armoredPublicKey: String): PGPPublicKey? {
