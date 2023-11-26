@@ -94,7 +94,6 @@ class PgpKeyGeneratorTest {
         assertEquals(keyId, pgpPrivateKey!!.keyID)
     }
 
-
     @Test
     fun testDecryptMessage() {
         val token = "BFK7MX9J3bxiOQzz4tWylTM9BqL6HRVIFIMp"
@@ -128,6 +127,89 @@ class PgpKeyGeneratorTest {
             "How are you doing?",
             PgpKeyGenerator.decryptMessage(encryptedMessage2, encryptedPrivateKey, token)
         )
+    }
+
+    @Test
+    fun testEncryptMessage() {
+        val token1 = "BFK7MX9J3bxiOQzz4tWylTM9BqL6HRVIFIMp"
+        val publicKey1 = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n" +
+                "\n" +
+                "        mDMEZVvV/xYJKwYBBAHaRw8BAQdAly0Ja3zv2dp4yGJSVHKSg4EdaMLPFRbse3YH\n" +
+                "        ulYfRty0TFJvYm9TYXRzIElEIDU5Y2Q2NDYxN2NmZGM4OTljNTFjM2QzMjFhYjM5\n" +
+                "        ODE2NTBhZjI0MThiNTNjMGY3YWVlYjc1MjRiZmJiMTI3M2KIjAQQFgoAPgWCZVvV\n" +
+                "        /wQLCQcICZCHFzmgxaoPHgMVCAoEFgACAQIZAQKbAwIeARYhBOQnYp+akJ1E2sHX\n" +
+                "        o4cXOaDFqg8eAADd/QD/eeMYe8LWJ/t5LO+QqUhT6OwkZogLjJiIm0V7IdPrtyYB\n" +
+                "        AJ6ptEcGZycSqtwzgWoGsMnlkTqpg00sd+xq5xPwiysFuDgEZVvV/xIKKwYBBAGX\n" +
+                "        VQEFAQEHQPu5ytyZl+pQP74jJ1k/ze48xflvE+RkRjrAFA/xI4QBAwEIB4h4BBgW\n" +
+                "        CAAqBYJlW9X/CZCHFzmgxaoPHgKbDBYhBOQnYp+akJ1E2sHXo4cXOaDFqg8eAACj\n" +
+                "        6QD8CCH3h8hu9VVnEhlJbMCeafVJlAH5FpX5t9DNWXDRCYAA/1x6TPyicMNiiM1Q\n" +
+                "        J5xiRV0lHcQY9mAnqYx02/tu9x8F\n" +
+                "        =8/1E\n" +
+                "        -----END PGP PUBLIC KEY BLOCK-----"
+        val encryptedPrivateKey1 = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
+                "\n" +
+                "    xYYEZVvV/xYJKwYBBAHaRw8BAQdAly0Ja3zv2dp4yGJSVHKSg4EdaMLPFRbs\n" +
+                "    e3YHulYfRtz+CQMI5AxhtOiljJ3gpdDAKPvXeDwlbfI117Bt8mghzcShibTE\n" +
+                "    gD5tsX1lSEb+6FatZv1bMqHOgWCk8AN9yEg2KDvhBpMJkSjMlwU6dBOnIPpK\n" +
+                "    481MUm9ib1NhdHMgSUQgNTljZDY0NjE3Y2ZkYzg5OWM1MWMzZDMyMWFiMzk4\n" +
+                "    MTY1MGFmMjQxOGI1M2MwZjdhZWViNzUyNGJmYmIxMjczYsKMBBAWCgA+BYJl\n" +
+                "    W9X/BAsJBwgJkIcXOaDFqg8eAxUICgQWAAIBAhkBApsDAh4BFiEE5Cdin5qQ\n" +
+                "    nUTawdejhxc5oMWqDx4AAN39AP954xh7wtYn+3ks75CpSFPo7CRmiAuMmIib\n" +
+                "    RXsh0+u3JgEAnqm0RwZnJxKq3DOBagawyeWROqmDTSx37GrnE/CLKwXHiwRl\n" +
+                "    W9X/EgorBgEEAZdVAQUBAQdA+7nK3JmX6lA/viMnWT/N7jzF+W8T5GRGOsAU\n" +
+                "    D/EjhAEDAQgH/gkDCLLQ+gcXEoCo4Ngj8HHzMRt5ZA486nnV7pxX+t0FkACt\n" +
+                "    PX8kccVTQWDG5IVrv9gWXmRM3JV2dGfGvMIIcyEdGz4Tn7D3Xbkcr1jz8Ljx\n" +
+                "    lIXCeAQYFggAKgWCZVvV/wmQhxc5oMWqDx4CmwwWIQTkJ2KfmpCdRNrB16OH\n" +
+                "    FzmgxaoPHgAAo+kA/Agh94fIbvVVZxIZSWzAnmn1SZQB+RaV+bfQzVlw0QmA\n" +
+                "    AP9cekz8onDDYojNUCecYkVdJR3EGPZgJ6mMdNv7bvcfBQ==\n" +
+                "    =bMIk\n" +
+                "    -----END PGP PRIVATE KEY BLOCK-----"
+
+        val token2 = "pUFILd7Nwae2RtBi8NhHspBbdXPNs32LNkpo"
+        val publicKey2 = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n" +
+                "\n" +
+                "        mDMEZVvV7RYJKwYBBAHaRw8BAQdAfB0NaPS2zPzQkF1KUYzpdMCCQshQICheGiOd\n" +
+                "        HQLUuW+0TFJvYm9TYXRzIElEIDM5NGY4YTJmYjVkNzNmYzg2ZWE4OGE4OTYyYTc4\n" +
+                "                NzE0NGQ2MTdiYjI4YjQzNDZjMjAyNDFkZjk2MDk5MzU3NzeIjAQQFgoAPgWCZVvV\n" +
+                "        7QQLCQcICZBM1aWsiSN3SQMVCAoEFgACAQIZAQKbAwIeARYhBBwApF7rY0FlpfSx\n" +
+                "                aEzVpayJI3dJAABGkQD+MKaAFWNhu8PfPO2kRpFernG/Xf4eM8hLHldJT/LV1kMA\n" +
+                "        /256k/970vnkC9loCGdCk6Yev06PPlg8JlOHHgUsQeIAuDgEZVvV7RIKKwYBBAGX\n" +
+                "        VQEFAQEHQLWev0xZG67R7JrCLEI3t6/rnOcLPAA8QkxLLPhHA5FwAwEIB4h4BBgW\n" +
+                "        CAAqBYJlW9XtCZBM1aWsiSN3SQKbDBYhBBwApF7rY0FlpfSxaEzVpayJI3dJAACb\n" +
+                "        ZgEAo0cUUD29fUWV1mFNiw4z3XtdDGGEflRImtKR6Er5r7gA/1AtJ/xatD1znbmX\n" +
+                "                As37lm9Rw1Stm+nl/nOytwQcwJEB\n" +
+                "        =b9op\n" +
+                "        -----END PGP PUBLIC KEY BLOCK-----"
+        val encryptedPrivateKey2 = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
+                "\n" +
+                "                xYYEZVvV7RYJKwYBBAHaRw8BAQdAfB0NaPS2zPzQkF1KUYzpdMCCQshQIChe\n" +
+                "        GiOdHQLUuW/+CQMIi1vBoXFuye/gLCupkzWvGZVEJeF9U4vukCtcjim201jk\n" +
+                "        ZnFcXgk2nHdI/MGqnDWw5nRrZ/QAOm6C90tKleG4uUck98JymVAAHqGemxtO\n" +
+                "        281MUm9ib1NhdHMgSUQgMzk0ZjhhMmZiNWQ3M2ZjODZlYTg4YTg5NjJhNzg3\n" +
+                "                MTQ0ZDYxN2JiMjhiNDM0NmMyMDI0MWRmOTYwOTkzNTc3N8KMBBAWCgA+BYJl\n" +
+                "        W9XtBAsJBwgJkEzVpayJI3dJAxUICgQWAAIBAhkBApsDAh4BFiEEHACkXutj\n" +
+                "        QWWl9LFoTNWlrIkjd0kAAEaRAP4wpoAVY2G7w9887aRGkV6ucb9d/h4zyEse\n" +
+                "        V0lP8tXWQwD/bnqT/3vS+eQL2WgIZ0KTph6/To8+WDwmU4ceBSxB4gDHiwRl\n" +
+                "        W9XtEgorBgEEAZdVAQUBAQdAtZ6/TFkbrtHsmsIsQje3r+uc5ws8ADxCTEss\n" +
+                "        +EcDkXADAQgH/gkDCH/FYNjyYhry4LtDngWUwYSz4MZqHZphkrJSyMPV0Pnv\n" +
+                "        WhQ6kD7m6s1DrrK96EdtZ8bLFU0DXsI4YRcBNKyxKAl+O1bF9SXWlGyLPG0L\n" +
+                "        qO7CeAQYFggAKgWCZVvV7QmQTNWlrIkjd0kCmwwWIQQcAKRe62NBZaX0sWhM\n" +
+                "        1aWsiSN3SQAAm2YBAKNHFFA9vX1FldZhTYsOM917XQxhhH5USJrSkehK+a+4\n" +
+                "        AP9QLSf8WrQ9c525lwLN+5ZvUcNUrZvp5f5zsrcEHMCRAQ==\n" +
+                "        =lGnI\n" +
+                "        -----END PGP PRIVATE KEY BLOCK-----"
+
+        val encryptedMessage1to2 = ""
+        val encryptedMessage2to1 = ""
+
+//        assertEquals(
+//            encryptedMessage1,
+//            PgpKeyGenerator.encryptMessage("Hello", publicKey)
+//        )
+//        assertEquals(
+//            encryptedMessage2,
+//            PgpKeyGenerator.encryptMessage("Hello", publicKey)
+//        )
     }
 
     @Test

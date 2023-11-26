@@ -1,5 +1,6 @@
 package com.bitcoinwukong.robosats_android.utils
 
+
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.BCPGInputStream
 import org.bouncycastle.bcpg.BCPGOutputStream
@@ -7,10 +8,12 @@ import org.bouncycastle.bcpg.ECSecretBCPGKey
 import org.bouncycastle.bcpg.PublicSubkeyPacket
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
+import org.bouncycastle.openpgp.PGPEncryptedDataGenerator
 import org.bouncycastle.openpgp.PGPEncryptedDataList
 import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPKeyRingGenerator
 import org.bouncycastle.openpgp.PGPLiteralData
+import org.bouncycastle.openpgp.PGPLiteralDataGenerator
 import org.bouncycastle.openpgp.PGPObjectFactory
 import org.bouncycastle.openpgp.PGPPrivateKey
 import org.bouncycastle.openpgp.PGPPublicKey
@@ -26,13 +29,17 @@ import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBu
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder
 import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder
+import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.InputStream
+import java.net.URLEncoder
 import java.security.KeyPairGenerator
+import java.security.SecureRandom
 import java.security.Security
 import java.util.Base64
 import java.util.Date
@@ -67,13 +74,55 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("Unable to decrypt private key $encryptedPrivateKey")
     }
 
+    fun encryptMessage(message: String, publicKeyString: String): String {
+        val pgpPublicKey = readPublicKey(publicKeyString) ?: throw IllegalArgumentException("Invalid public key")
+
+        val byteOutputStream = ByteArrayOutputStream()
+        val armoredOutputStream = ArmoredOutputStream(byteOutputStream)
+
+        val encryptedDataGenerator = PGPEncryptedDataGenerator(
+            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
+                .setWithIntegrityPacket(true)
+                .setSecureRandom(SecureRandom())
+                .setProvider("BC")
+        )
+
+        encryptedDataGenerator.addMethod(JcePublicKeyKeyEncryptionMethodGenerator(pgpPublicKey).setProvider("BC"))
+
+        val encryptedOut = encryptedDataGenerator.open(armoredOutputStream, ByteArray(4096))
+
+        val literalDataGenerator = PGPLiteralDataGenerator()
+        val pOut = literalDataGenerator.open(
+            encryptedOut, PGPLiteralData.BINARY, PGPLiteralData.CONSOLE, message.toByteArray().size.toLong(), Date()
+        )
+        pOut.write(message.toByteArray())
+
+        literalDataGenerator.close()
+        encryptedOut.close()
+        armoredOutputStream.close()
+
+        // Processing the output to match the expected format
+        // Remove line breaks and extra headers
+        val encryptedMessage = byteOutputStream.toString("UTF-8")
+            .replace("\r", "")
+            .replace("\n", "")
+            .replace("Version: BCPG v1.69", "")
+            .replace(" ", "")
+            .replace("-----BEGINPGPMESSAGE-----", "-----BEGIN PGP MESSAGE-----")
+
+        // URL encode the string
+        return URLEncoder.encode(encryptedMessage, "UTF-8")
+    }
+
+
     fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
         val inputStream =
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedMessage.toByteArray()))
         val pgpObjectFactory = PGPObjectFactory(inputStream, JcaKeyFingerprintCalculator())
         val pgpEncryptedDataList = pgpObjectFactory.nextObject() as PGPEncryptedDataList
 
-        for (pgpData in pgpEncryptedDataList) {
+        val dataList = pgpEncryptedDataList.asSequence().toList()
+        for (pgpData in dataList) {
             if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
                 val dataDecryptorFactory =
                     JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)

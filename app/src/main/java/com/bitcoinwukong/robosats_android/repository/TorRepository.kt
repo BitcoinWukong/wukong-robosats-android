@@ -244,7 +244,7 @@ class TorRepository(val torManager: ITorManager) {
         ).fold(
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
-                Log.d(TAG, "getRobotInfo succeeded: ${robot.token}")
+                Log.d(TAG, "getRobotInfo succeeded: ${robot.token}, ${robot.publicKey}, ${robot.encryptedPrivateKey}")
                 if (robot.pgpPrivateKey == null) {
                     val currentSet = _loadingRobots.value.orEmpty()
                     _loadingRobots.postValue(currentSet + robot)
