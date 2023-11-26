@@ -364,6 +364,14 @@ class TorRepository(val torManager: ITorManager) {
         )
     }
 
+    suspend fun takeOrder(
+        token: String,
+        orderId: Int,
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "takeOrder $orderId with robot token $token")
+        performOrderAction(token, orderId, "take")
+    }
+
     suspend fun pauseResumeOrder(
         token: String,
         orderId: Int,

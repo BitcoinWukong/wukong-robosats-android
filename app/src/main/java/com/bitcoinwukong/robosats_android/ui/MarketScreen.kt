@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
+import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.ui.order.TakeOrderDialog
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
@@ -49,6 +51,8 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val isUpdating by viewModel.isUpdating.observeAsState(false)
     val isTorReady by viewModel.isTorReady.observeAsState(false)
     val lastUpdated by viewModel.lastUpdated.observeAsState()
+    val selectedRobot: Robot? by viewModel.selectedRobot.observeAsState(null)
+    var showAlert by remember { mutableStateOf(false) }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("Sell", "Buy")
@@ -117,10 +121,29 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
         orderData = selectedOrder,
         onDismiss = { selectedOrder = null },
         onTakeOrder = {
-            // Handle Take Order logic here
+            val currentOrder = selectedOrder ?: return@TakeOrderDialog
+
+            if (selectedRobot?.pgpPrivateKey == null) {
+                showAlert = true
+            } else {
+                viewModel.takeOrder(currentOrder)
+            }
             selectedOrder = null
         }
     )
+
+    if (showAlert) {
+        AlertDialog(
+            onDismissRequest = { showAlert = false },
+            title = { Text("Alert") },
+            text = { Text("No active robot available, please create a robot or wait until its loading is completed") },
+            confirmButton = {
+                Button(onClick = { showAlert = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
 private fun getTorStatusText(isTorReady: Boolean, lastUpdated: LocalDateTime?): String {

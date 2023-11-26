@@ -182,7 +182,7 @@ class SharedViewModel(
         val robot = _selectedRobot.value ?: return
         updateRobotInfoInMap(robot.token, null) // Clear robot info cache
         viewModelScope.launch {
-            // Todo: update view model and UI base on the orde creation result
+            // Todo: update view model and UI base on the order creation result
             val result = torRepository.makeOrder(
                 robot.token,
                 orderData.type,
@@ -195,6 +195,22 @@ class SharedViewModel(
                 fetchRobotInfo(robot.token)
             }.onFailure { e ->
                 Log.e(TAG, "Error in createOrder: ${e.message}")
+            }
+        }
+    }
+
+    override fun takeOrder(orderData: OrderData) {
+        val robot = _selectedRobot.value ?: return
+        viewModelScope.launch {
+            val result = torRepository.takeOrder(
+                robot.token,
+                orderData.id!!
+            )
+
+            result.onSuccess {
+                fetchRobotInfo(robot.token)
+            }.onFailure { e ->
+                Log.e(TAG, "Error in takeOrder: ${e.message}")
             }
         }
     }
