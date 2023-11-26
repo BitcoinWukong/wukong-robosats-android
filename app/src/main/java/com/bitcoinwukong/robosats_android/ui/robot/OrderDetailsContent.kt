@@ -81,11 +81,15 @@ private fun ActionButtonsRow(viewModel: ISharedViewModel, robot: Robot, order: O
         horizontalArrangement = Arrangement.End
     ) {
 
-        Button(
-            onClick = { viewModel.cancelOrder(robot, order.id!!) },
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Text("Cancel")
+        when (order.status) {
+            OrderStatus.WAITING_FOR_MAKER_BOND, OrderStatus.PUBLIC, OrderStatus.PAUSED, OrderStatus.SENDING_FIAT_IN_CHATROOM -> Button(
+                onClick = { viewModel.cancelOrder(robot, order.id!!) },
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text("Cancel Order")
+            }
+
+            else -> {}
         }
 
         Button(
