@@ -74,62 +74,6 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("Unable to decrypt private key $encryptedPrivateKey")
     }
 
-    fun encryptMessage(message: String, publicKeyString: String): String {
-        val pgpPublicKey = readPublicKey(publicKeyString) ?: throw IllegalArgumentException("Invalid public key")
-
-        val byteOutputStream = ByteArrayOutputStream()
-        val armoredOutputStream = ArmoredOutputStream(byteOutputStream)
-
-        val encryptedDataGenerator = PGPEncryptedDataGenerator(
-            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
-                .setWithIntegrityPacket(true)
-                .setSecureRandom(SecureRandom())
-                .setProvider("BC")
-        )
-
-        encryptedDataGenerator.addMethod(JcePublicKeyKeyEncryptionMethodGenerator(pgpPublicKey).setProvider("BC"))
-
-        val encryptedOut = encryptedDataGenerator.open(armoredOutputStream, ByteArray(4096))
-
-        val literalDataGenerator = PGPLiteralDataGenerator()
-        val pOut = literalDataGenerator.open(
-            encryptedOut, PGPLiteralData.BINARY, PGPLiteralData.CONSOLE, message.toByteArray().size.toLong(), Date()
-        )
-        pOut.write(message.toByteArray())
-
-        literalDataGenerator.close()
-        encryptedOut.close()
-        armoredOutputStream.close()
-
-        // Processing the output to match the expected format
-        // Remove line breaks and extra headers
-        val encryptedMessage = byteOutputStream.toString("UTF-8")
-            .replace("\r", "")
-            .replace("\n", "")
-            .replace("Version: BCPG v1.69", "")
-            .replace(" ", "")
-            .replace("-----BEGINPGPMESSAGE-----", "-----BEGIN PGP MESSAGE-----")
-
-        // URL encode the string
-        return URLEncoder.encode(encryptedMessage, "UTF-8")
-    }
-
-    fun createEncryptedMessage(pgpEncryptedDataList: PGPEncryptedDataList): String {
-        val byteOutputStream = ByteArrayOutputStream()
-        ArmoredOutputStream(byteOutputStream).use { armoredOutputStream ->
-            pgpEncryptedDataList.forEach { encryptedData ->
-                val pgpObjectFactory = PGPObjectFactory(encryptedData.inputStream, JcaKeyFingerprintCalculator())
-                var nextObject: Any?
-                while (pgpObjectFactory.nextObject().also { nextObject = it } != null) {
-                    if (nextObject is ByteArray) {
-                        armoredOutputStream.write(nextObject as ByteArray)
-                    }
-                }
-            }
-        }
-        return byteOutputStream.toString()
-    }
-
     fun decodeEncryptedMessage(encryptedMessage: String): PGPEncryptedDataList {
         val encryptedMessage = encryptedMessage.replace("\\", "\n")
         val inputStream =
@@ -138,7 +82,10 @@ object PgpKeyGenerator {
         return pgpObjectFactory.nextObject() as PGPEncryptedDataList
     }
 
-    fun getEncryptedData(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): PGPPublicKeyEncryptedData {
+    fun getEncryptedData(
+        encryptedMessage: String,
+        pgpPrivateKey: PGPPrivateKey
+    ): PGPPublicKeyEncryptedData {
         for (pgpData in decodeEncryptedMessage(encryptedMessage)) {
             if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
                 return pgpData
@@ -148,7 +95,10 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("No encrypted data found for the provided private key")
     }
 
-    fun decryptMessageContent(pgpData: PGPPublicKeyEncryptedData, pgpPrivateKey: PGPPrivateKey): String {
+    fun decryptMessageContent(
+        pgpData: PGPPublicKeyEncryptedData,
+        pgpPrivateKey: PGPPrivateKey
+    ): String {
         val dataDecryptorFactory =
             JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
         val clearData = pgpData.getDataStream(dataDecryptorFactory)
@@ -173,13 +123,74 @@ object PgpKeyGenerator {
     }
 
     fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
-        for (pgpData in decodeEncryptedMessage(encryptedMessage)) {
-            if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
-                return decryptMessageContent(pgpData, pgpPrivateKey)
+        val encryptedData = getEncryptedData(encryptedMessage, pgpPrivateKey)
+        return decryptMessageContent(encryptedData, pgpPrivateKey)
+    }
+
+    fun encryptMessage(message: String, publicKeyString: String): String {
+        val pgpPublicKey =
+            readPublicKey(publicKeyString) ?: throw IllegalArgumentException("Invalid public key")
+
+        val byteOutputStream = ByteArrayOutputStream()
+        val armoredOutputStream = ArmoredOutputStream(byteOutputStream)
+
+        val encryptedDataGenerator = PGPEncryptedDataGenerator(
+            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
+                .setWithIntegrityPacket(true)
+                .setSecureRandom(SecureRandom())
+                .setProvider("BC")
+        )
+
+        encryptedDataGenerator.addMethod(
+            JcePublicKeyKeyEncryptionMethodGenerator(pgpPublicKey).setProvider(
+                "BC"
+            )
+        )
+
+        val encryptedOut = encryptedDataGenerator.open(armoredOutputStream, ByteArray(4096))
+
+        val literalDataGenerator = PGPLiteralDataGenerator()
+        val pOut = literalDataGenerator.open(
+            encryptedOut,
+            PGPLiteralData.BINARY,
+            PGPLiteralData.CONSOLE,
+            message.toByteArray().size.toLong(),
+            Date()
+        )
+        pOut.write(message.toByteArray())
+
+        literalDataGenerator.close()
+        encryptedOut.close()
+        armoredOutputStream.close()
+
+        // Processing the output to match the expected format
+        // Remove line breaks and extra headers
+        val encryptedMessage = byteOutputStream.toString("UTF-8")
+            .replace("\r", "")
+            .replace("\n", "")
+            .replace("Version: BCPG v1.69", "")
+            .replace(" ", "")
+            .replace("-----BEGINPGPMESSAGE-----", "-----BEGIN PGP MESSAGE-----")
+
+        // URL encode the string
+        return URLEncoder.encode(encryptedMessage, "UTF-8")
+    }
+
+    fun createEncryptedMessage(pgpEncryptedDataList: PGPEncryptedDataList): String {
+        val byteOutputStream = ByteArrayOutputStream()
+        ArmoredOutputStream(byteOutputStream).use { armoredOutputStream ->
+            pgpEncryptedDataList.forEach { encryptedData ->
+                val pgpObjectFactory =
+                    PGPObjectFactory(encryptedData.inputStream, JcaKeyFingerprintCalculator())
+                var nextObject: Any?
+                while (pgpObjectFactory.nextObject().also { nextObject = it } != null) {
+                    if (nextObject is ByteArray) {
+                        armoredOutputStream.write(nextObject as ByteArray)
+                    }
+                }
             }
         }
-
-        throw IllegalArgumentException("No suitable encrypted data found for the provided private key")
+        return byteOutputStream.toString()
     }
 
     fun generateKeyPair(
