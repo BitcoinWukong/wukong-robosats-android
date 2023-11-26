@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -52,6 +53,7 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
     val selectedRobot by viewModel.selectedRobot.observeAsState(null)
 
     var showCreateOrderDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val clipboardManager =
@@ -68,6 +70,29 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
             onDismiss = { showCreateOrderDialog = false }
         )
     }
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Confirm Deletion") },
+            text = { Text("Are you sure you want to delete this robot?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeRobot(selectedToken)
+                        showDeleteConfirmDialog = false
+                    }
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
 
     Column(
         modifier = Modifier
@@ -145,13 +170,12 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
             }
 
             Button(
-                onClick = {
-                    viewModel.removeRobot(selectedToken)
-                },
+                onClick = { showDeleteConfirmDialog = true },
                 enabled = selectedToken.isNotEmpty()
             ) {
                 Text("Delete")
             }
+
         }
 
         Spacer(modifier = Modifier.height(16.dp))
