@@ -111,8 +111,8 @@ private fun OrderStatusContent(
         }
 
         else -> when (order.status) {
-            OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
-            OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
+            OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order)
+            OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, order)
             OrderStatus.WAITING_FOR_MAKER_BOND, OrderStatus.WAITING_FOR_TAKER_BOND -> DisplayWaitingForBondDetails(
                 order
             )
@@ -209,10 +209,10 @@ private fun LoadingContent(orderId: Int) {
 
 @Composable
 private fun DisplayPublicOrderDetails(
-    viewModel: ISharedViewModel, robot: Robot, order: OrderData, orderId: Int
+    viewModel: ISharedViewModel, robot: Robot, order: OrderData
 ) {
     OrderDetailsSection(order)
-    Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
+    Button(onClick = { viewModel.pauseResumeOrder(robot, order.id!!) }) {
         Text("Pause")
     }
 }
@@ -244,10 +244,11 @@ private fun DisplayWaitingForBuyerInvoiceDetails(order: OrderData) {
 
 @Composable
 private fun DisplayPausedOrderDetails(
-    viewModel: ISharedViewModel, robot: Robot, orderId: Int
+    viewModel: ISharedViewModel, robot: Robot, order: OrderData
 ) {
     Text("Order is now paused")
-    Button(onClick = { viewModel.pauseResumeOrder(robot, orderId) }) {
+    OrderDetailsSection(order)
+    Button(onClick = { viewModel.pauseResumeOrder(robot, order.id!!) }) {
         Text("Resume")
     }
 }
@@ -312,7 +313,7 @@ fun OrderDetailsSection(order: OrderData) {
         Text(text = "Type: ${order.type}")
         Text(text = "Currency: ${order.currency}")
         Text(text = "Amount: ${order.formattedAmount()}")
-        Text(text = "Payment Method: ${order.paymentMethod}")
+        Text(text = "Payment Method: ${order.paymentMethod.methodName}")
         Text(text = "Premium: ${order.premium}%")
     }
 }
