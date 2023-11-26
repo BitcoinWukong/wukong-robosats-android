@@ -261,14 +261,28 @@ class SharedViewModel(
     override fun pauseResumeOrder(robot: Robot, orderId: Int) {
         Log.d(TAG, "pauseResumeOrder: $orderId")
         // Invalidate the order data
-        _ordersCache.remove(orderId)
-        if (_activeOrder.value?.id == orderId) {
-            _activeOrder.postValue(null)
-        }
+        invalidateOrder(orderId)
 
         viewModelScope.launch {
             torRepository.pauseResumeOrder(robot.token, orderId)
             getOrderDetails(robot, orderId)
+        }
+    }
+
+    private fun invalidateOrder(orderId: Int) {
+        _ordersCache.remove(orderId)
+        if (_activeOrder.value?.id == orderId) {
+            _activeOrder.postValue(null)
+        }
+    }
+
+    override fun cancelOrder(robot: Robot, orderId: Int) {
+        Log.d(TAG, "cancelOrder: $orderId")
+        invalidateOrder(orderId)
+
+        viewModelScope.launch {
+            torRepository.cancelOrder(robot.token, orderId)
+            fetchRobotInfo(robot.token)
         }
     }
 
@@ -299,24 +313,6 @@ class SharedViewModel(
                 _chatMessages.postValue(decryptedMessagesList)
             }.onFailure { e ->
                 Log.e(TAG, "getChatMessages failed: ${e.message}")
-            }
-        }
-    }
-
-    override fun cancelOrder(onResult: (Boolean, String?) -> Unit) {
-        val robot = _selectedRobot.value ?: return
-        val orderId = robot.activeOrderId ?: return
-
-        viewModelScope.launch {
-            val result = torRepository.performOrderAction(robot.token, orderId, "cancel")
-
-            result.onSuccess {
-                fetchRobotInfo(robot.token)
-                onResult(true, null)
-            }.onFailure { e ->
-                Log.e("SharedViewModel", "Error in cancel orderr: ${e.message}")
-                fetchRobotInfo(robot.token)
-                onResult(false, e.message)
             }
         }
     }

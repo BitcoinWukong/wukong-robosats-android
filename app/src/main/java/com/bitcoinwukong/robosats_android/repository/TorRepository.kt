@@ -397,6 +397,14 @@ class TorRepository(val torManager: ITorManager) {
         performOrderAction(token, orderId, "pause")
     }
 
+    suspend fun cancelOrder(
+        token: String,
+        orderId: Int,
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "cancelOrder: $orderId")
+        performOrderAction(token, orderId, "cancel")
+    }
+
     suspend fun performOrderAction(
         token: String,
         orderId: Int,

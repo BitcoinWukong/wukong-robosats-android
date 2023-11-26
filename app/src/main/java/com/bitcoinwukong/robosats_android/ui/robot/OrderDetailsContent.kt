@@ -69,19 +69,27 @@ fun OrderDetailsContent(
             ) {
                 OrderStatusContent(order, viewModel, robot, orderId)
             }
-            RefreshButton { viewModel.getOrderDetails(robot, orderId, true) }
+            ActionButtonsRow(viewModel, robot, order)
         }
     }
 }
 
 @Composable
-private fun RefreshButton(onClick: () -> Unit) {
+private fun ActionButtonsRow(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
     ) {
+
         Button(
-            onClick = onClick,
+            onClick = { viewModel.cancelOrder(robot, order.id!!) },
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Text("Cancel")
+        }
+
+        Button(
+            onClick = { viewModel.getOrderDetails(robot, order.id!!, true) },
             modifier = Modifier.padding(8.dp)
         ) {
             Text("Refresh")
