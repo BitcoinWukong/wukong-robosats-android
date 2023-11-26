@@ -18,14 +18,15 @@ fun TakeOrderDialog(orderData: OrderData?, onDismiss: () -> Unit, onTakeOrder: (
     if (orderData != null) {
         AlertDialog(
             onDismissRequest = { onDismiss() },
-            title = { Text("Take Order") },
+            title = {
+                if (orderData.type == OrderType.BUY) {
+                    Text("You're Selling Bitcoin")
+                } else {
+                    Text("You're Buying Bitcoin")
+                }
+            },
             text = {
                 Column {
-                    if (orderData.type == OrderType.BUY) {
-                        Text("You're Selling Bitcoin")
-                    } else {
-                        Text("You're Buying Bitcoin")
-                    }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Order ID: ${orderData.id ?: "N/A"}")
                     Text("Currency: ${orderData.currency.code}")

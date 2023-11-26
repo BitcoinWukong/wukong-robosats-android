@@ -34,6 +34,8 @@ data class OrderData(
     val escrowSats: Int? = null,
     val isMaker: Boolean = false,
     val isTaker: Boolean = false,
+    val isBuyer: Boolean = false,
+    val isSeller: Boolean = false,
     val chatLastIndex: Int? = null,
 ) {
     companion object {
@@ -82,6 +84,8 @@ data class OrderData(
                 escrowSats = jsonObject.optInt("escrow_satoshis", -1).takeIf { it != -1 },
                 isMaker = jsonObject.optBoolean("is_maker", false),
                 isTaker = jsonObject.optBoolean("is_taker", false),
+                isBuyer = jsonObject.optBoolean("is_buyer", false),
+                isSeller = jsonObject.optBoolean("is_seller", false),
                 chatLastIndex = jsonObject.optInt("chat_last_index", -1).takeIf { it != -1 },
             )
         }
@@ -94,10 +98,6 @@ data class OrderData(
     fun isWaitingForSellerCollateral(): Boolean {
         return (status == OrderStatus.WAITING_FOR_TRADE_COLLATERAL_AND_BUYER_INVOICE
                 || status == OrderStatus.WAITING_ONLY_FOR_SELLER_TRADE_COLLATERAL)
-    }
-
-    fun isSeller(): Boolean {
-        return (type == OrderType.SELL && isMaker) || (type == OrderType.BUY && isTaker)
     }
 
     fun formattedAmount(): String {

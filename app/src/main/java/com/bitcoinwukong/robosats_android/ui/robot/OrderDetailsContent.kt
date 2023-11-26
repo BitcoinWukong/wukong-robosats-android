@@ -81,11 +81,15 @@ private fun ActionButtonsRow(viewModel: ISharedViewModel, robot: Robot, order: O
         horizontalArrangement = Arrangement.End
     ) {
 
-        Button(
-            onClick = { viewModel.cancelOrder(robot, order.id!!) },
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Text("Cancel")
+        when (order.status) {
+            OrderStatus.WAITING_FOR_MAKER_BOND, OrderStatus.PUBLIC, OrderStatus.PAUSED, OrderStatus.SENDING_FIAT_IN_CHATROOM -> Button(
+                onClick = { viewModel.cancelOrder(robot, order.id!!) },
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text("Cancel Order")
+            }
+
+            else -> {}
         }
 
         Button(
@@ -109,7 +113,7 @@ private fun OrderStatusContent(
     }
 
     when {
-        order.isWaitingForSellerCollateral() && order.isSeller() -> DisplayWaitingForSellerCollateralDetails(
+        order.isWaitingForSellerCollateral() && order.isSeller -> DisplayWaitingForSellerCollateralDetails(
             order
         )
 
@@ -149,7 +153,7 @@ private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
         }
 
         // Conditional button based on order status and role
-        if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller()) {
+        if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller) {
             Button(
                 onClick = { showConfirmationDialog = true },
                 modifier = Modifier

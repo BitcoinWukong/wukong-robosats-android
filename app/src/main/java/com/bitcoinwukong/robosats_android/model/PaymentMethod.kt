@@ -88,13 +88,13 @@ enum class PaymentMethod(val methodName: String) {
     QIWI("Qiwi"),
     CUSTOM("Custom");
 
+    override fun toString(): String {
+        return methodName
+    }
+
     companion object {
         fun fromString(methodName: String): PaymentMethod {
             return values().firstOrNull { it.methodName.equals(methodName, ignoreCase = true) } ?: CUSTOM
-        }
-
-        fun toString(method: PaymentMethod): String {
-            return method.methodName
         }
     }
 }
