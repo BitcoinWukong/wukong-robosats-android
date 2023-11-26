@@ -46,12 +46,26 @@ class TorRepository(val torManager: ITorManager) {
     private var _isTorReady = MutableLiveData(false)
     val isTorReady: LiveData<Boolean> get() = _isTorReady
 
+    private var _loadingRobots = MutableLiveData<Set<Robot>>(emptySet())
+    val loadingRobots: LiveData<Set<Robot>> get() = _loadingRobots
+
     fun restartTor() {
         torManager.restart()
     }
 
     companion object {
         private val TAG = TorRepository::class.java.simpleName
+    }
+
+    init {
+        Robot.onPrivateKeyDecrypted = { robot ->
+            removeRobot(robot)
+        }
+    }
+
+    private fun removeRobot(robot: Robot) {
+        val currentSet = _loadingRobots.value.orEmpty()
+        _loadingRobots.postValue(currentSet - robot)
     }
 
     private fun createHttpClient(): OkHttpClient {
@@ -209,7 +223,11 @@ class TorRepository(val torManager: ITorManager) {
             )
         }
 
-    suspend fun getRobotInfo(token: String, publicKey: String?=null, encPrivKey: String?=null): Result<Robot> = withContext(Dispatchers.IO) {
+    suspend fun getRobotInfo(
+        token: String,
+        publicKey: String? = null,
+        encPrivKey: String? = null
+    ): Result<Robot> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getRobotInfo: $token, $publicKey, $encPrivKey")
         makeGeneralRequest(
             api = "robot",
@@ -220,6 +238,10 @@ class TorRepository(val torManager: ITorManager) {
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
                 Log.d(TAG, "getRobotInfo succeeded: ${robot.token}")
+                if (robot.pgpPrivateKey == null) {
+                    val currentSet = _loadingRobots.value.orEmpty()
+                    _loadingRobots.postValue(currentSet + robot)
+                }
                 Result.success(robot)
             },
             onFailure = { e ->

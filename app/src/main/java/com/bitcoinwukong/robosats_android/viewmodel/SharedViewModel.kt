@@ -38,6 +38,8 @@ class SharedViewModel(
     override val isUpdating: LiveData<Boolean> get() = torRepository.isUpdating
     override val isTorReady: LiveData<Boolean> get() = torRepository.isTorReady
 
+    override val loadingRobots: LiveData<Set<Robot>> get() = torRepository.loadingRobots
+
     private var _robotTokens = MutableLiveData<Set<String>>()
     override val robotTokens: LiveData<Set<String>> get() = _robotTokens
 
@@ -199,11 +201,15 @@ class SharedViewModel(
 
     override fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean) {
         Log.d(TAG, "getting order details: $orderId")
-        if (!resetCache) {
-            _activeOrder.value = _ordersCache[orderId]
-        } else {
+
+        val activeOrderId = _selectedRobot.value?.activeOrderId
+        if (resetCache) {
             _ordersCache.remove(orderId)
-            _activeOrder.value = null
+            if (activeOrderId == orderId) {
+                _activeOrder.value = null
+            }
+        } else if (activeOrderId == orderId) {
+            _activeOrder.value = _ordersCache[orderId]
         }
 
         viewModelScope.launch {
