@@ -109,7 +109,7 @@ private fun OrderStatusContent(
     }
 
     when {
-        order.isWaitingForSellerCollateral() && order.isSeller() -> DisplayWaitingForSellerCollateralDetails(
+        order.isWaitingForSellerCollateral() && order.isSeller -> DisplayWaitingForSellerCollateralDetails(
             order
         )
 
@@ -149,7 +149,7 @@ private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
         }
 
         // Conditional button based on order status and role
-        if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller()) {
+        if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller) {
             Button(
                 onClick = { showConfirmationDialog = true },
                 modifier = Modifier
