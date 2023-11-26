@@ -114,15 +114,31 @@ object PgpKeyGenerator {
         return URLEncoder.encode(encryptedMessage, "UTF-8")
     }
 
+    fun createEncryptedMessage(pgpEncryptedDataList: PGPEncryptedDataList): String {
+        val byteOutputStream = ByteArrayOutputStream()
+        ArmoredOutputStream(byteOutputStream).use { armoredOutputStream ->
+            pgpEncryptedDataList.forEach { encryptedData ->
+                val pgpObjectFactory = PGPObjectFactory(encryptedData.inputStream, JcaKeyFingerprintCalculator())
+                var nextObject: Any?
+                while (pgpObjectFactory.nextObject().also { nextObject = it } != null) {
+                    if (nextObject is ByteArray) {
+                        armoredOutputStream.write(nextObject as ByteArray)
+                    }
+                }
+            }
+        }
+        return byteOutputStream.toString()
+    }
 
-    fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
+    fun decodeEncryptedMessage(encryptedMessage: String): PGPEncryptedDataList {
         val inputStream =
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedMessage.toByteArray()))
         val pgpObjectFactory = PGPObjectFactory(inputStream, JcaKeyFingerprintCalculator())
-        val pgpEncryptedDataList = pgpObjectFactory.nextObject() as PGPEncryptedDataList
+        return pgpObjectFactory.nextObject() as PGPEncryptedDataList
+    }
 
-        val dataList = pgpEncryptedDataList.asSequence().toList()
-        for (pgpData in dataList) {
+    fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
+        for (pgpData in decodeEncryptedMessage(encryptedMessage)) {
             if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
                 val dataDecryptorFactory =
                     JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
