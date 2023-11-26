@@ -41,8 +41,8 @@ interface ISharedViewModel {
 
     fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean = false)
     fun pauseResumeOrder(robot: Robot, orderId: Int)
+    fun cancelOrder(robot: Robot, orderId: Int)
 
     fun getChatMessages(robot: Robot, orderId: Int)
 
-    fun cancelOrder(onResult: (Boolean, String?) -> Unit)
 }

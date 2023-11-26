@@ -85,7 +85,7 @@ class MockSharedViewModel(
         Log.d("MockSharedViewModel", "getChatMessages called")
     }
 
-    override fun cancelOrder(onResult: (Boolean, String?) -> Unit) {
+    override fun cancelOrder(robot: Robot, orderId: Int) {
         Log.d("MockSharedViewModel", "cancelOrder called")
     }
 }
