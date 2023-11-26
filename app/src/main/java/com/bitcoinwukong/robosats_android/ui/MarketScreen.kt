@@ -1,11 +1,13 @@
 package com.bitcoinwukong.robosats_android.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +37,7 @@ import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
+import com.bitcoinwukong.robosats_android.ui.order.TakeOrderDialog
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 import java.time.LocalDateTime
@@ -48,6 +52,8 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("Sell", "Buy")
+
+    var selectedOrder: OrderData? by remember { mutableStateOf(null) }
 
     Column(
         modifier = Modifier
@@ -74,7 +80,9 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
                     (selectedTabIndex == 0 && order.type == OrderType.BUY) ||
                             (selectedTabIndex == 1 && order.type == OrderType.SELL)
                 }) { order ->
-                    OrderRow(order)
+                    OrderRow(order) {
+                        selectedOrder = order
+                    }
                 }
             }
         }
@@ -103,6 +111,16 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
             }
         }
     }
+
+    // Show dialog when an order is selected
+    TakeOrderDialog(
+        orderData = selectedOrder,
+        onDismiss = { selectedOrder = null },
+        onTakeOrder = {
+            // Handle Take Order logic here
+            selectedOrder = null
+        }
+    )
 }
 
 private fun getTorStatusText(isTorReady: Boolean, lastUpdated: LocalDateTime?): String {
@@ -118,11 +136,13 @@ private fun getTorStatusText(isTorReady: Boolean, lastUpdated: LocalDateTime?): 
 }
 
 @Composable
-fun OrderRow(orderData: OrderData) {
+fun OrderRow(orderData: OrderData, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable(onClick = onClick)
+            .heightIn(min = 48.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
