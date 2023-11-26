@@ -114,6 +114,8 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
         // Convert robotTokens to a list of RobotDropdownItem
         val dropdownItems = robotTokens.map { token ->
             RobotDropdownItem(token, robotsInfoMap[token])
+        }.sortedBy { robotDropdownItem ->
+            robotDropdownItem.token
         }
         val selectedDropdownItem = dropdownItems.find { it.token == selectedToken }
 

@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -25,9 +28,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
@@ -37,6 +44,7 @@ import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun OrderDetailsContent(
@@ -57,7 +65,8 @@ fun OrderDetailsContent(
             val order = activeOrder ?: return
             Column(
                 modifier = Modifier
-                    .weight(1f)) {
+                    .weight(1f)
+            ) {
                 OrderStatusContent(order, viewModel, robot, orderId)
             }
             RefreshButton { viewModel.getOrderDetails(robot, orderId, true) }
@@ -98,36 +107,87 @@ private fun OrderStatusContent(
 
         order.isChatting() -> {
             viewModel.getChatMessages(robot, orderId)
-            ChatMessages(viewModel)
+            ChatMessages(viewModel, order)
         }
+
         else -> when (order.status) {
             OrderStatus.PUBLIC -> DisplayPublicOrderDetails(viewModel, robot, order, orderId)
             OrderStatus.PAUSED -> DisplayPausedOrderDetails(viewModel, robot, orderId)
-            OrderStatus.WAITING_FOR_MAKER_BOND -> DisplayWaitingForMakerBondDetails(order)
+            OrderStatus.WAITING_FOR_MAKER_BOND, OrderStatus.WAITING_FOR_TAKER_BOND -> DisplayWaitingForBondDetails(
+                order
+            )
+
+            OrderStatus.WAITING_ONLY_FOR_BUYER_INVOICE -> DisplayWaitingForBuyerInvoiceDetails(order)
             else -> DisplayUnknownStatus(order)
         }
     }
 }
 
 @Composable
-private fun ChatMessages(viewModel: ISharedViewModel) {
+private fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
     val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
+    var showConfirmationDialog by remember { mutableStateOf(false) }
 
-    if (chatMessages != null) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Display chat messages
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.weight(1f)
         ) {
             items(chatMessages) { message ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Text(message)
-                }
+                ChatMessageRow(message)
             }
         }
-    } else {
+
+        // Conditional button based on order status and role
+        if (order.status == OrderStatus.FIAT_SENT_IN_CHATROOM && order.isSeller()) {
+            Button(
+                onClick = { showConfirmationDialog = true },
+                modifier = Modifier
+                    .padding(8.dp)
+            ) {
+                Text("Confirm fiat received")
+            }
+        }
+    }
+
+    // Loading state
+    if (chatMessages.isEmpty()) {
         Text("Loading messages...")
+    }
+
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = { Text("Confirmation") },
+            text = { Text("Are you sure you have received your fiat payment? This action is irreversible!") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.confirmOrderFiatReceived(order)
+                    showConfirmationDialog = false
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showConfirmationDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ChatMessageRow(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Text(message)
     }
 }
 
@@ -158,6 +218,31 @@ private fun DisplayPublicOrderDetails(
 }
 
 @Composable
+private fun DisplayWaitingForBuyerInvoiceDetails(order: OrderData) {
+    Column {
+        Text(
+            text = "We're now waiting for the buyer to provide their invoice for receiving the Bitcoin.",
+            style = MaterialTheme.typography.body1
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "If the buyer doesn't submit their invoice before ${
+                order.expiresAt?.format(
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                )
+            },",
+            style = MaterialTheme.typography.body1
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "you will receive a compensation.",
+            style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+        )
+    }
+}
+
+
+@Composable
 private fun DisplayPausedOrderDetails(
     viewModel: ISharedViewModel, robot: Robot, orderId: Int
 ) {
@@ -168,9 +253,9 @@ private fun DisplayPausedOrderDetails(
 }
 
 @Composable
-private fun DisplayWaitingForMakerBondDetails(order: OrderData) {
+private fun DisplayWaitingForBondDetails(order: OrderData) {
     order.bondInvoice?.let { bondInvoice ->
-        Text("Waiting for maker bond:")
+        Text("Waiting for your escrow bond:")
         Spacer(Modifier.height(16.dp))
         InvoiceDisplaySection(bondInvoice)
     }
@@ -264,7 +349,7 @@ fun PauseOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    Row(modifier = Modifier.width(350.dp)) {
+    Row(modifier = Modifier.size(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel, robot1
         )
@@ -282,7 +367,7 @@ fun ResumeOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    Row(modifier = Modifier.width(350.dp)) {
+    Row(modifier = Modifier.size(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel, robot1
         )
@@ -305,7 +390,7 @@ fun WaitingForMakerBondOrderDetailsPreview() {
         activeOrderId = 91593,
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
-    Row(modifier = Modifier.width(350.dp)) {
+    Row(modifier = Modifier.size(350.dp)) {
         OrderDetailsContent(
             mockSharedViewModel, robot1
         )

@@ -35,6 +35,9 @@ interface ISharedViewModel {
     fun removeRobot(token: String)
 
     fun createOrder(orderData: OrderData)
+    fun takeOrder(orderData: OrderData)
+    fun confirmOrderFiatReceived(orderData: OrderData)
+
 
     fun getOrderDetails(robot: Robot, orderId: Int, resetCache: Boolean = false)
     fun pauseResumeOrder(robot: Robot, orderId: Int)

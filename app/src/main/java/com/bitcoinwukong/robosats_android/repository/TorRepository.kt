@@ -176,7 +176,14 @@ class TorRepository(val torManager: ITorManager) {
                 val authValue = buildString {
                     append("Token $hashedToken")
                     if (pubKey != null && encPrivKey != null) {
-                        append(" | Public ${pubKey.replace("\n", "\\")} | Private ${encPrivKey.replace("\n", "\\")}")
+                        append(
+                            " | Public ${
+                                pubKey.replace(
+                                    "\n",
+                                    "\\"
+                                )
+                            } | Private ${encPrivKey.replace("\n", "\\")}"
+                        )
                     }
                 }
                 headers["Authorization"] = authValue
@@ -251,7 +258,7 @@ class TorRepository(val torManager: ITorManager) {
     }
 
     suspend fun getChatMessages(
-        token: String,
+        robot: Robot,
         orderId: Int
     ): Result<List<Message>> = withContext(Dispatchers.IO) {
         val queryParams = mapOf(
@@ -260,7 +267,9 @@ class TorRepository(val torManager: ITorManager) {
 
         makeGeneralRequest(
             api = "chat",
-            token = token,
+            token = robot.token,
+            pubKey = robot.publicKey,
+            encPrivKey = robot.encryptedPrivateKey,
             queryParams = queryParams,
         ).fold(
             onSuccess = { jsonObject ->
@@ -364,6 +373,22 @@ class TorRepository(val torManager: ITorManager) {
         )
     }
 
+    suspend fun takeOrder(
+        token: String,
+        orderId: Int,
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "takeOrder $orderId with robot token $token")
+        performOrderAction(token, orderId, "take")
+    }
+
+    suspend fun confirmOrderFiatReceived(
+        token: String,
+        orderId: Int,
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "confirmOrderFiatReceived $orderId with robot token $token")
+        performOrderAction(token, orderId, "confirm")
+    }
+
     suspend fun pauseResumeOrder(
         token: String,
         orderId: Int,
@@ -376,6 +401,8 @@ class TorRepository(val torManager: ITorManager) {
         token: String,
         orderId: Int,
         action: String,
+        pubKey: String? = null,
+        encPrivKey: String? = null,
         invoice: String? = null,
         routingBudgetPpm: Int? = null,
         address: String? = null,
@@ -399,6 +426,8 @@ class TorRepository(val torManager: ITorManager) {
             makeGeneralRequest(
                 api = "order",
                 token = token,
+                pubKey = pubKey,
+                encPrivKey = encPrivKey,
                 queryParams = mapOf("order_id" to orderId.toString()),
                 formBodyParams = formBodyParams,
                 method = "POST"
