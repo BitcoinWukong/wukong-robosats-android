@@ -53,6 +53,7 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val lastUpdated by viewModel.lastUpdated.observeAsState()
     val selectedRobot: Robot? by viewModel.selectedRobot.observeAsState(null)
     var showAlert by remember { mutableStateOf(false) }
+    var alertText by remember { mutableStateOf("") }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("Sell", "Buy")
@@ -85,7 +86,16 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
                             (selectedTabIndex == 1 && order.type == OrderType.SELL)
                 }) { order ->
                     OrderRow(order) {
-                        selectedOrder = order
+                        if (selectedRobot?.pgpPrivateKey == null) {
+                            alertText =
+                                "No active robot available, please create a robot or wait until its loading is completed"
+                            showAlert = true
+                        } else if (selectedRobot!!.activeOrderId != null) {
+                            alertText = "Robot already has an active order. Please use a different robot."
+                            showAlert = true
+                        } else {
+                            selectedOrder = order
+                        }
                     }
                 }
             }
@@ -122,12 +132,7 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
         onDismiss = { selectedOrder = null },
         onTakeOrder = {
             val currentOrder = selectedOrder ?: return@TakeOrderDialog
-
-            if (selectedRobot?.pgpPrivateKey == null) {
-                showAlert = true
-            } else {
-                viewModel.takeOrder(currentOrder)
-            }
+            viewModel.takeOrder(currentOrder)
             selectedOrder = null
         }
     )
@@ -136,7 +141,7 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
         AlertDialog(
             onDismissRequest = { showAlert = false },
             title = { Text("Alert") },
-            text = { Text("No active robot available, please create a robot or wait until its loading is completed") },
+            text = { Text(alertText) },
             confirmButton = {
                 Button(onClick = { showAlert = false }) {
                     Text("OK")
