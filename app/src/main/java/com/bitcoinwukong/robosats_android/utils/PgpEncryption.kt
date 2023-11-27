@@ -267,6 +267,19 @@ object PgpKeyGenerator {
         }.replace("\n", "\\")
     }
 
+    fun encryptMessage(
+        message: String,
+        signatureKey: PGPPrivateKey,
+        senderPublicKey: PGPPublicKey,
+        receiverPublicKey: PGPPublicKey
+        ) : String {
+        val generatedEncryptedData =
+            createPGPEncryptedDataByteArray(message, signatureKey, senderPublicKey)
+        val generatedEncryptedData2 =
+            createPGPEncryptedDataByteArray(message, signatureKey, receiverPublicKey)
+        return createArmoredEncryptedMessage(generatedEncryptedData, generatedEncryptedData2)
+    }
+
     fun decryptMessageContent(
         pgpData: PGPPublicKeyEncryptedData,
         pgpPrivateKey: PGPPrivateKey

@@ -4,6 +4,7 @@ import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.createArmoredEncryptedMessage
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.createPGPEncryptedDataByteArray
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKeys
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.encryptMessage
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractPgpObjectsList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getPGPPublicKeyEncryptedDataFromByteArray
@@ -276,12 +277,7 @@ class PgpKeyGeneratorTest {
 
         val publicKey = readPublicKey(publicKeyArmor)!!
         val publicKey2 = readPublicKey(publicKey2Armor)!!
-        val generatedEncryptedData =
-            createPGPEncryptedDataByteArray(message1, signatureKey, publicKey)
-        val generatedEncryptedData2 =
-            createPGPEncryptedDataByteArray(message1, signatureKey, publicKey2)
-        val encryptedMessage =
-            createArmoredEncryptedMessage(generatedEncryptedData, generatedEncryptedData2)
+        val encryptedMessage = encryptMessage(message1, signatureKey, publicKey, publicKey2)
         assertNotNull(encryptedMessage)
     }
 
