@@ -180,6 +180,60 @@ object PgpKeyGenerator {
         return PGPSignatureList(signature)
     }
 
+    fun createPGPEncryptedData(
+        message: String,
+        signatureKey: PGPPrivateKey,
+        encryptionKey: PGPPublicKey
+    ): PGPPublicKeyEncryptedData {
+        val buffer = ByteArrayOutputStream()
+
+        // Set up the encrypted data generator
+        val encGen = PGPEncryptedDataGenerator(
+            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
+                .setSecureRandom(SecureRandom())
+                .setWithIntegrityPacket(true)
+                .setProvider("BC")
+        )
+        encGen.addMethod(JcePublicKeyKeyEncryptionMethodGenerator(encryptionKey).setProvider("BC"))
+
+        // Set up the signature generator
+        val sigGen = PGPSignatureGenerator(
+            JcaPGPContentSignerBuilder(signatureKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
+        ).apply {
+            init(PGPSignature.CANONICAL_TEXT_DOCUMENT, signatureKey)
+        }
+
+        val bOut = ByteArrayOutputStream()
+
+        // Create one-pass signature list
+        val onePassSignature = sigGen.generateOnePassVersion(false)
+        onePassSignature.encode(bOut)
+
+        // Create literal data
+        val literalDataGen = PGPLiteralDataGenerator()
+        val pOut = literalDataGen.open(
+            bOut, PGPLiteralData.UTF8, "", Date(), ByteArray(256)
+        ).apply {
+            write(message.toByteArray())
+        }
+        pOut.close()
+
+        // Create signature list
+        sigGen.update(message.toByteArray())
+        val signature = sigGen.generate()
+        signature.encode(bOut)
+
+        val encryptedOut = encGen.open(buffer, bOut.size().toLong())
+
+        // Writing to encrypted output stream
+        encryptedOut.write(bOut.toByteArray())
+        encryptedOut.close()
+
+//        return buffer.toByteArray()
+        val pgpData = PGPObjectFactory(buffer.toByteArray(), JcaKeyFingerprintCalculator()).nextObject() as PGPEncryptedDataList
+        return pgpData.get(0) as PGPPublicKeyEncryptedData
+    }
+
     fun decryptMessageContent(
         pgpData: PGPPublicKeyEncryptedData,
         pgpPrivateKey: PGPPrivateKey
