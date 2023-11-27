@@ -34,10 +34,10 @@ class EncryptionTest {
 
     @Test
     fun testDecryptPrivateKey() {
-        val pgpPrivateKey = PgpKeyGenerator.decryptPrivateKey(
+        val pgpPrivateKey = PgpKeyGenerator.decryptPrivateKeys(
             encryptedPrivateKey,
             token
-        )
+        ).second
         Assert.assertEquals(keyId, pgpPrivateKey.keyID)
     }
 
