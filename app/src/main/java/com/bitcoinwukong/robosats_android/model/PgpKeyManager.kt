@@ -62,7 +62,7 @@ object PgpKeyManager {
                     "PgpKeyManager",
                     "Start decrypting private key for token $token, $encryptedKey"
                 )
-                val pgpKey = PgpKeyGenerator.decryptPrivateKey(encryptedKey, token)
+                val pgpKey = PgpKeyGenerator.decryptPrivateKeys(encryptedKey, token).second
                 Log.d(
                     "PgpKeyManager",
                     "Done decrypting private key for token $token, $encryptedKey"

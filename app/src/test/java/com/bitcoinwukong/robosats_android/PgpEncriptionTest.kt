@@ -1,12 +1,13 @@
 package com.bitcoinwukong.robosats_android
 
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKey
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKeys
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractPgpObjectsList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPOnePassSignatureList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPGPLiteralData
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPublicKey
 import com.bitcoinwukong.robosats_android.utils.generateSecureToken
 import com.bitcoinwukong.robosats_android.utils.tokenSha256Hash
 import org.bouncycastle.bcpg.ECDHPublicBCPGKey
@@ -44,16 +45,17 @@ class PgpKeyGeneratorTest {
                 "AQC1kpWxyAmEzcvS+ildGuaV28XF6c3o3I6SZlcM7ls/Dw==\n" +
                 "=YAfZ\n" +
                 "-----END PGP PRIVATE KEY BLOCK-----"
-        val pgpPrivateKey = decryptPrivateKey(encPrivKey, robotToken)
-        val encodedKeyStr = PgpKeyGenerator.serializePGPPrivateKey(pgpPrivateKey)
+        val pgpPrivateKeys = decryptPrivateKeys(encPrivKey, robotToken)
+        val decryptionKey = pgpPrivateKeys.second
+        val encodedKeyStr = PgpKeyGenerator.serializePGPPrivateKey(decryptionKey)
         val decodedPrivateKey = PgpKeyGenerator.deserializePGPPrivateKey(encodedKeyStr)
-        assertEquals(pgpPrivateKey.keyID, decodedPrivateKey.keyID)
+        assertEquals(decryptionKey.keyID, decodedPrivateKey.keyID)
         assertEquals(
-            ((pgpPrivateKey.publicKeyPacket as PublicSubkeyPacket).key as ECDHPublicBCPGKey).encodedPoint,
+            ((decryptionKey.publicKeyPacket as PublicSubkeyPacket).key as ECDHPublicBCPGKey).encodedPoint,
             ((decodedPrivateKey.publicKeyPacket as PublicSubkeyPacket).key as ECDHPublicBCPGKey).encodedPoint
         )
         assertEquals(
-            (pgpPrivateKey.privateKeyDataPacket as ECSecretBCPGKey).x,
+            (decryptionKey.privateKeyDataPacket as ECSecretBCPGKey).x,
             (decodedPrivateKey.privateKeyDataPacket as ECSecretBCPGKey).x
         )
     }
@@ -80,7 +82,7 @@ class PgpKeyGeneratorTest {
                 "=YAfZ\n" +
                 "-----END PGP PRIVATE KEY BLOCK-----"
         val keyId = 7088936486162781302
-        val pgpPrivateKey = decryptPrivateKey(encPrivKey, robotToken)
+        val pgpPrivateKey = decryptPrivateKeys(encPrivKey, robotToken).second
         assertEquals(keyId, pgpPrivateKey.keyID)
     }
 
@@ -182,9 +184,9 @@ class PgpKeyGeneratorTest {
             "-----BEGIN PGP MESSAGE-----\\\\wV4DVRRUcH0Pq9QSAQdAZO7KAUrxMaUwULL+6EXVhOoYrQZON+Zyhq4Aw52m\\GiIwnrTQJT8rhO3x8TDHnFpvEA9Cas3Fm8p7v41Lj+Wu7ezndABXvJNuYF/m\\oz/o0eEXwV4DcDBaMBvbOlISAQdAEz9Ot7zLfWzVvCcJEsnV70PsHMkPIy9h\\fMiTvgNn1wUwd/t2IFFtKSPLtFKVnRyvBIrj/vR+0xDE1cgj0KDJ9/AJ3i9o\\0U0jbM2VNMqQ+qJM0sAJAaR5/hEEl6JrhRQzm/AYwdNJV00AOAJG57wLial+\\t1k4m34pFvkVdDycKSRWv92ob07EvzuAwbEHnXMqnBcTSTX3hWe1juj6Kwuo\\SMArMQhOlU2ao0DgN9HJd4hYI6DpkURaRZyxp+c7H+uBUHN7XYGiUuuKmfFs\\4M0A/qYC5PxAuDnq4/xe8mipl+Id9a5pYTO4BJLIYDOK1CcQ0hPS9mnL+/u7\\5cyopyr5tc988c8BPpmg3TfOs+2dLDHamHjWM3+77J4kNYZQ\\=CQvx\\-----END PGP MESSAGE-----\\"
         val message2 = "How are you doing?"
 
-        val privateKey = decryptPrivateKey(encryptedPrivateKey, token)
-        val encryptedData = getEncryptedData(encryptedMessage1, privateKey)
-        val pgpObjectsList = extractPgpObjectsList(encryptedData, privateKey)
+        val (signatureKey, decryptionKey)  = decryptPrivateKeys(encryptedPrivateKey, token)
+        val encryptedData = getEncryptedData(encryptedMessage1, decryptionKey)
+        val pgpObjectsList = extractPgpObjectsList(encryptedData, decryptionKey)
 
         assertEquals(3, pgpObjectsList.size)
 
@@ -192,8 +194,13 @@ class PgpKeyGeneratorTest {
         val literalData = pgpObjectsList[1] as PGPLiteralData
         val signature = pgpObjectsList[2] as PGPSignatureList
 
-        val generatedOnePassSignature = generatePGPOnePassSignatureList(privateKey)
-        assertEquals(onePassSignature, generatedOnePassSignature)
+        // Test generatePGPOnePassSignatureList
+        val publicKey = readPublicKey(publicKeyArmor)
+        val generatedOnePassSignature = generatePGPOnePassSignatureList(signatureKey)
+        onePassSignature
+        assertEquals(1, onePassSignature.size())
+        assertEquals(1, generatedOnePassSignature.size())
+        assertArrayEquals(onePassSignature[0].encoded, generatedOnePassSignature[0].encoded)
 
         // Test generatePGPLiteralData
         val timestamp: Long = 1700791166L
@@ -207,10 +214,10 @@ class PgpKeyGeneratorTest {
             data2,
         )
 
+        // Test generatePGPOnePassSignatureList
 
 //        val decryptedByteArray = convertPGPPublicKeyEncryptedDataToByteArray(encryptedData, privateKey)
 //
-//        val publicKey = readPublicKey(publicKeyArmor)
 //        val generatedByteArray = encryptAndSignMessage("hello", publicKey!!, privateKey)
 //        assertEquals(decryptedByteArray, generatedByteArray)
 //        val decryptedMessageContent = decryptMessageContent(encryptedData, privateKey)

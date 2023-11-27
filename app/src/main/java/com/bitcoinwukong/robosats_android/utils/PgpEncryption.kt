@@ -5,6 +5,7 @@ import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.BCPGInputStream
 import org.bouncycastle.bcpg.BCPGOutputStream
 import org.bouncycastle.bcpg.ECSecretBCPGKey
+import org.bouncycastle.bcpg.PublicKeyAlgorithmTags
 import org.bouncycastle.bcpg.PublicSubkeyPacket
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
@@ -55,7 +56,7 @@ object PgpKeyGenerator {
         Security.addProvider(BouncyCastleProvider())
     }
 
-    fun decryptPrivateKey(encryptedPrivateKey: String, passphrase: String): PGPPrivateKey {
+    fun decryptPrivateKeys(encryptedPrivateKey: String, passphrase: String): Pair<PGPPrivateKey, PGPPrivateKey> {
         val secretKeyRingCollection = PGPSecretKeyRingCollection(
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedPrivateKey.toByteArray())),
             JcaKeyFingerprintCalculator()
@@ -63,15 +64,13 @@ object PgpKeyGenerator {
 
         if (secretKeyRingCollection.keyRings.hasNext()) {
             val keyRing = secretKeyRingCollection.keyRings.next()
+            val decryptor = JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase.toCharArray())
+            val keyList = keyRing.secretKeys.asSequence().toList()
 
-            // Check if there's a subkey (index 1) and use it for decryption
-            val secretKeys = keyRing.secretKeys.asSequence().toList()
-            if (secretKeys.size > 1) { // Check if there's a subkey
-                val subkey = secretKeys[1] // Use the subkey (index 1)
-                val decryptor = JcePBESecretKeyDecryptorBuilder().setProvider("BC")
-                    .build(passphrase.toCharArray())
-                return subkey.extractPrivateKey(decryptor)
-            }
+            val primaryKey = keyList[0].extractPrivateKey(decryptor)
+            val subKey = keyList[1].extractPrivateKey(decryptor)
+
+            return Pair(primaryKey, subKey)
         }
 
         throw IllegalArgumentException("Unable to decrypt private key $encryptedPrivateKey")
@@ -120,20 +119,14 @@ object PgpKeyGenerator {
         }
     }
 
-    fun generatePGPOnePassSignatureList(privateKey: PGPPrivateKey): PGPOnePassSignatureList {
-        Security.addProvider(BouncyCastleProvider())
-
-        val signatureType = PGPSignature.CANONICAL_TEXT_DOCUMENT // Or another type as needed
-        val hashAlgorithm = PGPUtil.SHA256 // Set the hash algorithm
-
+    fun generatePGPOnePassSignatureList(signingPrivateKey: PGPPrivateKey): PGPOnePassSignatureList {
         val signatureGenerator = PGPSignatureGenerator(
-            JcaPGPContentSignerBuilder(privateKey.publicKeyPacket.algorithm, hashAlgorithm).setProvider("BC")
+            JcaPGPContentSignerBuilder(signingPrivateKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
         ).apply {
-            init(signatureType, privateKey)
+            init(PGPSignature.CANONICAL_TEXT_DOCUMENT, signingPrivateKey)
         }
 
         val onePassSignature = signatureGenerator.generateOnePassVersion(false)
-
         return PGPOnePassSignatureList(onePassSignature)
     }
 
@@ -160,6 +153,17 @@ object PgpKeyGenerator {
 
         return pgpFact.nextObject() as PGPLiteralData
     }
+
+//    fun generatePGPSignatureList(privateKey: PGPPrivateKey): PGPSignatureList {
+//        val signatureGenerator = PGPSignatureGenerator(
+//            JcaPGPContentSignerBuilder(privateKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
+//        ).apply {
+//            init(PGPSignature.CANONICAL_TEXT_DOCUMENT, privateKey)
+//        }
+//
+//        val onePassSignature = signatureGenerator.generateOnePassVersion(false)
+//        return PGPOnePassSignatureList(onePassSignature)
+//    }
 
     fun decryptMessageContent(
         pgpData: PGPPublicKeyEncryptedData,
@@ -275,8 +279,8 @@ object PgpKeyGenerator {
         encryptedPrivateKey: String,
         passphrase: String
     ): String {
-        val pgpPrivateKey = decryptPrivateKey(encryptedPrivateKey, passphrase)
-        return decryptMessage(encryptedMessage, pgpPrivateKey)
+        val pgpPrivateKeys = decryptPrivateKeys(encryptedPrivateKey, passphrase)
+        return decryptMessage(encryptedMessage, pgpPrivateKeys.second)
     }
 
     fun readPublicKey(armoredPublicKey: String): PGPPublicKey? {
