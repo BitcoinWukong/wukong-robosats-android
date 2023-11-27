@@ -121,12 +121,13 @@ object PgpKeyGenerator {
 
     fun generatePGPLiteralData(message: String): PGPLiteralData? {
         val byteStream = ByteArrayOutputStream()
+
         // Use PGPLiteralDataGenerator to generate literal data into a stream
         val literalDataGenerator = PGPLiteralDataGenerator()
         val output = literalDataGenerator.open(
             byteStream,
-            PGPLiteralData.BINARY,
-            PGPLiteralData.CONSOLE,
+            PGPLiteralData.TEXT,
+            "",
             message.toByteArray().size.toLong(),
             Date()
         )
