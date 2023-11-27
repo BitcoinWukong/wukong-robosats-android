@@ -5,7 +5,6 @@ import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.BCPGInputStream
 import org.bouncycastle.bcpg.BCPGOutputStream
 import org.bouncycastle.bcpg.ECSecretBCPGKey
-import org.bouncycastle.bcpg.PublicKeyAlgorithmTags
 import org.bouncycastle.bcpg.PublicSubkeyPacket
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
@@ -41,7 +40,6 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.InputStream
-import java.net.URLEncoder
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
 import java.security.Security
@@ -56,7 +54,10 @@ object PgpKeyGenerator {
         Security.addProvider(BouncyCastleProvider())
     }
 
-    fun decryptPrivateKeys(encryptedPrivateKey: String, passphrase: String): Pair<PGPPrivateKey, PGPPrivateKey> {
+    fun decryptPrivateKeys(
+        encryptedPrivateKey: String,
+        passphrase: String
+    ): Pair<PGPPrivateKey, PGPPrivateKey> {
         val secretKeyRingCollection = PGPSecretKeyRingCollection(
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedPrivateKey.toByteArray())),
             JcaKeyFingerprintCalculator()
@@ -64,7 +65,8 @@ object PgpKeyGenerator {
 
         if (secretKeyRingCollection.keyRings.hasNext()) {
             val keyRing = secretKeyRingCollection.keyRings.next()
-            val decryptor = JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase.toCharArray())
+            val decryptor =
+                JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase.toCharArray())
             val keyList = keyRing.secretKeys.asSequence().toList()
 
             val primaryKey = keyList[0].extractPrivateKey(decryptor)
@@ -121,7 +123,10 @@ object PgpKeyGenerator {
 
     fun generatePGPOnePassSignatureList(signingPrivateKey: PGPPrivateKey): PGPOnePassSignatureList {
         val signatureGenerator = PGPSignatureGenerator(
-            JcaPGPContentSignerBuilder(signingPrivateKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
+            JcaPGPContentSignerBuilder(
+                signingPrivateKey.publicKeyPacket.algorithm,
+                PGPUtil.SHA512
+            ).setProvider("BC")
         ).apply {
             init(PGPSignature.CANONICAL_TEXT_DOCUMENT, signingPrivateKey)
         }
@@ -180,11 +185,11 @@ object PgpKeyGenerator {
         return PGPSignatureList(signature)
     }
 
-    fun createPGPEncryptedData(
+    fun createPGPEncryptedDataByteArray(
         message: String,
         signatureKey: PGPPrivateKey,
         encryptionKey: PGPPublicKey
-    ): PGPPublicKeyEncryptedData {
+    ): ByteArray {
         val buffer = ByteArrayOutputStream()
 
         // Set up the encrypted data generator
@@ -198,7 +203,10 @@ object PgpKeyGenerator {
 
         // Set up the signature generator
         val sigGen = PGPSignatureGenerator(
-            JcaPGPContentSignerBuilder(signatureKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
+            JcaPGPContentSignerBuilder(
+                signatureKey.publicKeyPacket.algorithm,
+                PGPUtil.SHA512
+            ).setProvider("BC")
         ).apply {
             init(PGPSignature.CANONICAL_TEXT_DOCUMENT, signatureKey)
         }
@@ -229,9 +237,34 @@ object PgpKeyGenerator {
         encryptedOut.write(bOut.toByteArray())
         encryptedOut.close()
 
-//        return buffer.toByteArray()
-        val pgpData = PGPObjectFactory(buffer.toByteArray(), JcaKeyFingerprintCalculator()).nextObject() as PGPEncryptedDataList
+        return buffer.toByteArray()
+    }
+
+    fun getPGPPublicKeyEncryptedDataFromByteArray(byteArray: ByteArray): PGPPublicKeyEncryptedData {
+        val pgpData = PGPObjectFactory(
+            byteArray,
+            JcaKeyFingerprintCalculator()
+        ).nextObject() as PGPEncryptedDataList
         return pgpData.get(0) as PGPPublicKeyEncryptedData
+    }
+
+    fun createArmoredEncryptedMessage(
+        encryptedDataBytes1: ByteArray,
+        encryptedDataBytes2: ByteArray
+    ): String {
+        val combinedStream = ByteArrayOutputStream()
+
+        // Combine the two encrypted data byte arrays
+        combinedStream.write(encryptedDataBytes1)
+        combinedStream.write(encryptedDataBytes2)
+
+        // Convert the combined byte array into an armored string
+        return ByteArrayOutputStream().use { armoredStream ->
+            ArmoredOutputStream(armoredStream).use { armorOut ->
+                armorOut.write(combinedStream.toByteArray())
+            }
+            armoredStream.toString("UTF-8")
+        }.replace("\n", "\\")
     }
 
     fun decryptMessageContent(
@@ -266,7 +299,10 @@ object PgpKeyGenerator {
         return decryptMessageContent(encryptedData, pgpPrivateKey)
     }
 
-    fun convertPGPPublicKeyEncryptedDataToByteArray(pgpPublicKeyEncryptedData: PGPPublicKeyEncryptedData, pgpPrivateKey: PGPPrivateKey): ByteArray {
+    fun convertPGPPublicKeyEncryptedDataToByteArray(
+        pgpPublicKeyEncryptedData: PGPPublicKeyEncryptedData,
+        pgpPrivateKey: PGPPrivateKey
+    ): ByteArray {
         val dataDecryptorFactory =
             JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
         val clearData = pgpPublicKeyEncryptedData.getDataStream(dataDecryptorFactory)
@@ -277,11 +313,18 @@ object PgpKeyGenerator {
         }
     }
 
-    fun encryptAndSignMessage(message: String, publicKey: PGPPublicKey, privateKey: PGPPrivateKey): ByteArray {
+    fun encryptAndSignMessage(
+        message: String,
+        publicKey: PGPPublicKey,
+        privateKey: PGPPrivateKey
+    ): ByteArray {
         val out = ByteArrayOutputStream()
 
         val signatureGenerator = PGPSignatureGenerator(
-            JcaPGPContentSignerBuilder(privateKey.publicKeyPacket.algorithm, PGPUtil.SHA256).setProvider("BC")
+            JcaPGPContentSignerBuilder(
+                privateKey.publicKeyPacket.algorithm,
+                PGPUtil.SHA256
+            ).setProvider("BC")
         ).apply {
             init(PGPSignature.BINARY_DOCUMENT, privateKey)
         }
@@ -296,28 +339,33 @@ object PgpKeyGenerator {
         }
 
         ArmoredOutputStream(out).use { armoredOutputStream ->
-            encryptedDataGenerator.open(armoredOutputStream, ByteArray(1 shl 16)).use { encryptedOut ->
-                // Write One Pass Signature
-                val onePassSignature = signatureGenerator.generateOnePassVersion(false)
-                onePassSignature.encode(encryptedOut)
+            encryptedDataGenerator.open(armoredOutputStream, ByteArray(1 shl 16))
+                .use { encryptedOut ->
+                    // Write One Pass Signature
+                    val onePassSignature = signatureGenerator.generateOnePassVersion(false)
+                    onePassSignature.encode(encryptedOut)
 
-                // Generate Literal Data
-                val literalDataGenerator = PGPLiteralDataGenerator()
-                val literalOut = literalDataGenerator.open(
-                    encryptedOut, PGPLiteralData.BINARY, PGPLiteralData.CONSOLE, message.toByteArray().size.toLong(), Date()
-                )
+                    // Generate Literal Data
+                    val literalDataGenerator = PGPLiteralDataGenerator()
+                    val literalOut = literalDataGenerator.open(
+                        encryptedOut,
+                        PGPLiteralData.BINARY,
+                        PGPLiteralData.CONSOLE,
+                        message.toByteArray().size.toLong(),
+                        Date()
+                    )
 
-                try {
-                    literalOut.write(message.toByteArray())
-                    signatureGenerator.update(message.toByteArray())
-                } finally {
-                    literalOut.close()
+                    try {
+                        literalOut.write(message.toByteArray())
+                        signatureGenerator.update(message.toByteArray())
+                    } finally {
+                        literalOut.close()
+                    }
+
+                    // Write Signature List
+                    val signature = signatureGenerator.generate()
+                    signature.encode(encryptedOut)
                 }
-
-                // Write Signature List
-                val signature = signatureGenerator.generate()
-                signature.encode(encryptedOut)
-            }
         }
 
         return out.toByteArray()
