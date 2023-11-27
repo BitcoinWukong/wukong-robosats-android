@@ -2,8 +2,9 @@ package com.bitcoinwukong.robosats_android
 
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKey
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractLiteralData
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractPgpObjectsList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPLiteralData
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPOnePassSignatureList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.generateSecureToken
@@ -11,6 +12,9 @@ import com.bitcoinwukong.robosats_android.utils.tokenSha256Hash
 import org.bouncycastle.bcpg.ECDHPublicBCPGKey
 import org.bouncycastle.bcpg.ECSecretBCPGKey
 import org.bouncycastle.bcpg.PublicSubkeyPacket
+import org.bouncycastle.openpgp.PGPLiteralData
+import org.bouncycastle.openpgp.PGPOnePassSignatureList
+import org.bouncycastle.openpgp.PGPSignatureList
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -180,7 +184,18 @@ class PgpKeyGeneratorTest {
 
         val privateKey = decryptPrivateKey(encryptedPrivateKey, token)
         val encryptedData = getEncryptedData(encryptedMessage1, privateKey)
-        val literalData = extractLiteralData(encryptedData, privateKey)
+        val pgpObjectsList = extractPgpObjectsList(encryptedData, privateKey)
+
+        assertEquals(3, pgpObjectsList.size)
+
+        val onePassSignature = pgpObjectsList[0] as PGPOnePassSignatureList
+        val literalData = pgpObjectsList[1] as PGPLiteralData
+        val signature = pgpObjectsList[2] as PGPSignatureList
+
+        val generatedOnePassSignature = generatePGPOnePassSignatureList(privateKey)
+        assertEquals(onePassSignature, generatedOnePassSignature)
+
+        // Test generatePGPLiteralData
         val timestamp: Long = 1700791166L
         val generatedLiteralData = generatePGPLiteralData(message1, Date(timestamp * 1000))
 

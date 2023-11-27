@@ -98,25 +98,16 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("No encrypted data found for the provided private key")
     }
 
-    fun extractLiteralData(
+    fun extractPgpObjectsList(
         pgpData: PGPPublicKeyEncryptedData,
         pgpPrivateKey: PGPPrivateKey
-    ): PGPLiteralData {
+    ): List<Any> {
         val dataDecryptorFactory =
             JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
         val clearData = pgpData.getDataStream(dataDecryptorFactory)
 
         val plainFactory = PGPObjectFactory(clearData, JcaKeyFingerprintCalculator())
-        var messageContent: String? = null
-
-        val pgpObjectsList = plainFactory.asSequence().toList()
-        for (pgpObject in pgpObjectsList) {
-            if (pgpObject is PGPLiteralData) {
-                return pgpObject
-            }
-        }
-
-        throw IllegalArgumentException("Unable to decrypt the message content with the provided private key")
+        return plainFactory.asSequence().toList()
     }
 
 
@@ -127,6 +118,23 @@ object PgpKeyGenerator {
             }
             return baos.toByteArray()
         }
+    }
+
+    fun generatePGPOnePassSignatureList(privateKey: PGPPrivateKey): PGPOnePassSignatureList {
+        Security.addProvider(BouncyCastleProvider())
+
+        val signatureType = PGPSignature.CANONICAL_TEXT_DOCUMENT // Or another type as needed
+        val hashAlgorithm = PGPUtil.SHA256 // Set the hash algorithm
+
+        val signatureGenerator = PGPSignatureGenerator(
+            JcaPGPContentSignerBuilder(privateKey.publicKeyPacket.algorithm, hashAlgorithm).setProvider("BC")
+        ).apply {
+            init(signatureType, privateKey)
+        }
+
+        val onePassSignature = signatureGenerator.generateOnePassVersion(false)
+
+        return PGPOnePassSignatureList(onePassSignature)
     }
 
     fun generatePGPLiteralData(message: String, hardCodedDate: Date? = null): PGPLiteralData {
