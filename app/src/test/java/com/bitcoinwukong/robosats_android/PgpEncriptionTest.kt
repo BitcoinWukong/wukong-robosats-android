@@ -5,6 +5,8 @@ import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.convertPGPPublic
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptMessageContent
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKey
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.encryptAndSignMessage
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractLiteralData
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPublicKey
 import com.bitcoinwukong.robosats_android.utils.generateSecureToken
@@ -177,15 +179,19 @@ class PgpKeyGeneratorTest {
         val encryptedMessage2 =
             "-----BEGIN PGP MESSAGE-----\\\\wV4DVRRUcH0Pq9QSAQdAZO7KAUrxMaUwULL+6EXVhOoYrQZON+Zyhq4Aw52m\\GiIwnrTQJT8rhO3x8TDHnFpvEA9Cas3Fm8p7v41Lj+Wu7ezndABXvJNuYF/m\\oz/o0eEXwV4DcDBaMBvbOlISAQdAEz9Ot7zLfWzVvCcJEsnV70PsHMkPIy9h\\fMiTvgNn1wUwd/t2IFFtKSPLtFKVnRyvBIrj/vR+0xDE1cgj0KDJ9/AJ3i9o\\0U0jbM2VNMqQ+qJM0sAJAaR5/hEEl6JrhRQzm/AYwdNJV00AOAJG57wLial+\\t1k4m34pFvkVdDycKSRWv92ob07EvzuAwbEHnXMqnBcTSTX3hWe1juj6Kwuo\\SMArMQhOlU2ao0DgN9HJd4hYI6DpkURaRZyxp+c7H+uBUHN7XYGiUuuKmfFs\\4M0A/qYC5PxAuDnq4/xe8mipl+Id9a5pYTO4BJLIYDOK1CcQ0hPS9mnL+/u7\\5cyopyr5tc988c8BPpmg3TfOs+2dLDHamHjWM3+77J4kNYZQ\\=CQvx\\-----END PGP MESSAGE-----\\"
 
-        PgpKeyGenerator.initialize()
         val privateKey = decryptPrivateKey(encryptedPrivateKey, token)
         val encryptedData = getEncryptedData(encryptedMessage1, privateKey)
-        val decryptedByteArray = convertPGPPublicKeyEncryptedDataToByteArray(encryptedData, privateKey)
+        val literalData = extractLiteralData(encryptedData, privateKey)
+        val generatedLiteralData = generatePGPLiteralData("hello")
+        assertEquals(literalData, generatedLiteralData)
 
-        val publicKey = readPublicKey(publicKeyArmor)
-        val generatedByteArray = encryptAndSignMessage("hello", publicKey!!, privateKey)
-        assertEquals(decryptedByteArray, generatedByteArray)
-//        val decryptedMessageContent = decryptMessageContent(encryptedData, privateKey)
+
+//        val decryptedByteArray = convertPGPPublicKeyEncryptedDataToByteArray(encryptedData, privateKey)
+//
+//        val publicKey = readPublicKey(publicKeyArmor)
+//        val generatedByteArray = encryptAndSignMessage("hello", publicKey!!, privateKey)
+//        assertEquals(decryptedByteArray, generatedByteArray)
+        val decryptedMessageContent = decryptMessageContent(encryptedData, privateKey)
 //
 //
 //        assertEquals(encryptedMessage1, PgpKeyGenerator.createEncryptedMessage(PgpKeyGenerator.decodeEncryptedMessage(encryptedMessage1)))

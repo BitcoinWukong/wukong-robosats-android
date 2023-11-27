@@ -48,10 +48,6 @@ import java.util.Base64
 import java.util.Date
 
 object PgpKeyGenerator {
-    fun initialize() {
-        Security.removeProvider("BC")
-        Security.addProvider(BouncyCastleProvider())
-    }
     init {
         // Remove the built-in Android Bouncy Castle security provider and replace it with
         // the standard one that has more algorithms
@@ -100,6 +96,50 @@ object PgpKeyGenerator {
         }
 
         throw IllegalArgumentException("No encrypted data found for the provided private key")
+    }
+
+    fun extractLiteralData(
+        pgpData: PGPPublicKeyEncryptedData,
+        pgpPrivateKey: PGPPrivateKey
+    ): PGPLiteralData {
+        val dataDecryptorFactory =
+            JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(pgpPrivateKey)
+        val clearData = pgpData.getDataStream(dataDecryptorFactory)
+
+        val plainFactory = PGPObjectFactory(clearData, JcaKeyFingerprintCalculator())
+        var messageContent: String? = null
+
+        val pgpObjectsList = plainFactory.asSequence().toList()
+        for (pgpObject in pgpObjectsList) {
+            if (pgpObject is PGPLiteralData) {
+                return pgpObject
+            }
+        }
+
+        throw IllegalArgumentException("Unable to decrypt the message content with the provided private key")
+    }
+
+    fun generatePGPLiteralData(message: String): PGPLiteralData? {
+        val byteStream = ByteArrayOutputStream()
+        // Use PGPLiteralDataGenerator to generate literal data into a stream
+        val literalDataGenerator = PGPLiteralDataGenerator()
+        val output = literalDataGenerator.open(
+            byteStream,
+            PGPLiteralData.BINARY,
+            PGPLiteralData.CONSOLE,
+            message.toByteArray().size.toLong(),
+            Date()
+        )
+
+        output.use {
+            it.write(message.toByteArray())
+        }
+
+        // Parse the generated data back into a PGPLiteralData object
+        val literalDataBytes = ByteArrayInputStream(byteStream.toByteArray())
+        val pgpFact = PGPObjectFactory(literalDataBytes, JcaKeyFingerprintCalculator())
+
+        return pgpFact.nextObject() as? PGPLiteralData
     }
 
     fun decryptMessageContent(
