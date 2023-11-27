@@ -154,16 +154,31 @@ object PgpKeyGenerator {
         return pgpFact.nextObject() as PGPLiteralData
     }
 
-//    fun generatePGPSignatureList(privateKey: PGPPrivateKey): PGPSignatureList {
-//        val signatureGenerator = PGPSignatureGenerator(
-//            JcaPGPContentSignerBuilder(privateKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
-//        ).apply {
-//            init(PGPSignature.CANONICAL_TEXT_DOCUMENT, privateKey)
-//        }
-//
-//        val onePassSignature = signatureGenerator.generateOnePassVersion(false)
-//        return PGPOnePassSignatureList(onePassSignature)
-//    }
+    fun generatePGPSignatureList(
+        literalData: PGPLiteralData,
+        signingPrivateKey: PGPPrivateKey,
+        publicKeyAlgorithm: Int = signingPrivateKey.publicKeyPacket.algorithm,
+        hashAlgorithm: Int = PGPUtil.SHA256
+    ): PGPSignatureList {
+        Security.addProvider(BouncyCastleProvider())
+
+        // Initialize the signature generator
+        val signatureGenerator = PGPSignatureGenerator(
+            JcaPGPContentSignerBuilder(publicKeyAlgorithm, hashAlgorithm).setProvider("BC")
+        ).apply {
+            init(PGPSignature.CANONICAL_TEXT_DOCUMENT, signingPrivateKey)
+        }
+
+        // Process the literal data and update the signature
+        ByteArrayOutputStream().use { bOut ->
+            literalData.inputStream.copyTo(bOut)
+            signatureGenerator.update(bOut.toByteArray())
+        }
+
+        // Generate the signature list
+        val signature = signatureGenerator.generate()
+        return PGPSignatureList(signature)
+    }
 
     fun decryptMessageContent(
         pgpData: PGPPublicKeyEncryptedData,

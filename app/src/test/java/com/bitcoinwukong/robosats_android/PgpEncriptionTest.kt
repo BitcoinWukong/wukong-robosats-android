@@ -5,6 +5,7 @@ import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKe
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractPgpObjectsList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPOnePassSignatureList
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPSignatureList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPublicKey
@@ -214,17 +215,8 @@ class PgpKeyGeneratorTest {
             data2,
         )
 
-        // Test generatePGPOnePassSignatureList
-
-//        val decryptedByteArray = convertPGPPublicKeyEncryptedDataToByteArray(encryptedData, privateKey)
-//
-//        val generatedByteArray = encryptAndSignMessage("hello", publicKey!!, privateKey)
-//        assertEquals(decryptedByteArray, generatedByteArray)
-//        val decryptedMessageContent = decryptMessageContent(encryptedData, privateKey)
-//
-//
-//        assertEquals(encryptedMessage1, PgpKeyGenerator.createEncryptedMessage(PgpKeyGenerator.decodeEncryptedMessage(encryptedMessage1)))
-//        assertEquals(encryptedMessage1, PgpKeyGenerator.createEncryptedMessage(PgpKeyGenerator.decodeEncryptedMessage(encryptedMessage2)))
+        val generatedSignature = generatePGPSignatureList(generatedLiteralData, signatureKey)
+        assertNotNull(generatedSignature)
     }
 
     @Test
