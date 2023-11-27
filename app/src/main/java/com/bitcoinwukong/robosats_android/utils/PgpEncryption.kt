@@ -119,17 +119,27 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("Unable to decrypt the message content with the provided private key")
     }
 
-    fun generatePGPLiteralData(message: String): PGPLiteralData {
+
+    fun readPGPLiteralData(literalData: PGPLiteralData): ByteArray {
+        ByteArrayOutputStream().use { baos ->
+            literalData.inputStream.use { input ->
+                input.copyTo(baos)
+            }
+            return baos.toByteArray()
+        }
+    }
+
+    fun generatePGPLiteralData(message: String, hardCodedDate: Date? = null): PGPLiteralData {
         val byteStream = ByteArrayOutputStream()
 
         // Use PGPLiteralDataGenerator to generate literal data into a stream
         val literalDataGenerator = PGPLiteralDataGenerator()
         val output = literalDataGenerator.open(
             byteStream,
-            PGPLiteralData.TEXT,
+            PGPLiteralData.UTF8,
             "",
             message.toByteArray().size.toLong(),
-            Date()
+            hardCodedDate ?: Date()
         )
 
         output.use {

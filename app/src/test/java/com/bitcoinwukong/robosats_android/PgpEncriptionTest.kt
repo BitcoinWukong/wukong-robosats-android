@@ -1,20 +1,22 @@
 package com.bitcoinwukong.robosats_android
 
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptMessageContent
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKey
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.generateSecureToken
 import com.bitcoinwukong.robosats_android.utils.tokenSha256Hash
 import org.bouncycastle.bcpg.ECDHPublicBCPGKey
 import org.bouncycastle.bcpg.ECSecretBCPGKey
 import org.bouncycastle.bcpg.PublicSubkeyPacket
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Date
 
 class PgpKeyGeneratorTest {
     @Test
@@ -171,16 +173,23 @@ class PgpKeyGeneratorTest {
         val token = "BFK7MX9J3bxiOQzz4tWylTM9BqL6HRVIFIMp"
         val encryptedMessage1 =
             "-----BEGIN PGP MESSAGE-----\\\\wV4DVRRUcH0Pq9QSAQdA+z5qZG4UQ4XZW80hjHdGwbNSrL7zO45csZpw5JuO\\4jUwEpBa4zr4w8FLaQ+srHqC9Bmyac3ZUN/EI4b3CgWbmIHumNNzwgn1nAth\\AIsJLEdTwV4DcDBaMBvbOlISAQdA+rmSu7t9XEhW0677kn+IsPaY2jADrDKl\\FFQ5HJeVpjIwCC+ry0SDlhSQphIHyFKyo2oV4YSVVsP5N2MkWBaYptYLRuxR\\BI6QjHHIR4Wc4C970rwBC0bPUi+Eyjvpc622b8ndg2G6STQwwfUlZjuASZ0z\\UdTKD9qA2eT7cvFVXXGe6hsEUbP+ZUtGgY9xUAiXXjavL92M30yg//SJKq2p\\MvCrtEnAZxYRsZjZzS4lTNSTMQf1IANuQXL4Zx5rc072OBgLuKbvC2AfzY8f\\qH57cNb2l7OGmjbSzfe6w1freIVKh2g/kVs5tXzYMm0mm5TkBAWa5x5qFgSP\\aIJgvbQWBR7odUMDAsv7Px7p8H7IXw==\\=lFWF\\-----END PGP MESSAGE-----\\"
+        val message1 = "Hello"
         val encryptedMessage2 =
             "-----BEGIN PGP MESSAGE-----\\\\wV4DVRRUcH0Pq9QSAQdAZO7KAUrxMaUwULL+6EXVhOoYrQZON+Zyhq4Aw52m\\GiIwnrTQJT8rhO3x8TDHnFpvEA9Cas3Fm8p7v41Lj+Wu7ezndABXvJNuYF/m\\oz/o0eEXwV4DcDBaMBvbOlISAQdAEz9Ot7zLfWzVvCcJEsnV70PsHMkPIy9h\\fMiTvgNn1wUwd/t2IFFtKSPLtFKVnRyvBIrj/vR+0xDE1cgj0KDJ9/AJ3i9o\\0U0jbM2VNMqQ+qJM0sAJAaR5/hEEl6JrhRQzm/AYwdNJV00AOAJG57wLial+\\t1k4m34pFvkVdDycKSRWv92ob07EvzuAwbEHnXMqnBcTSTX3hWe1juj6Kwuo\\SMArMQhOlU2ao0DgN9HJd4hYI6DpkURaRZyxp+c7H+uBUHN7XYGiUuuKmfFs\\4M0A/qYC5PxAuDnq4/xe8mipl+Id9a5pYTO4BJLIYDOK1CcQ0hPS9mnL+/u7\\5cyopyr5tc988c8BPpmg3TfOs+2dLDHamHjWM3+77J4kNYZQ\\=CQvx\\-----END PGP MESSAGE-----\\"
+        val message2 = "How are you doing?"
 
         val privateKey = decryptPrivateKey(encryptedPrivateKey, token)
         val encryptedData = getEncryptedData(encryptedMessage1, privateKey)
         val literalData = extractLiteralData(encryptedData, privateKey)
-        val generatedLiteralData = generatePGPLiteralData("hello")
-        assertEquals(
-            literalData.inputStream.bufferedReader().readText(),
-            generatedLiteralData.inputStream.bufferedReader().readText()
+        val timestamp: Long = 1700791166L
+        val generatedLiteralData = generatePGPLiteralData(message1, Date(timestamp * 1000))
+
+        val data1 = readPGPLiteralData(literalData)
+        val data2 = readPGPLiteralData(generatedLiteralData)
+
+        assertArrayEquals(
+            data1,
+            data2,
         )
 
 
@@ -189,7 +198,7 @@ class PgpKeyGeneratorTest {
 //        val publicKey = readPublicKey(publicKeyArmor)
 //        val generatedByteArray = encryptAndSignMessage("hello", publicKey!!, privateKey)
 //        assertEquals(decryptedByteArray, generatedByteArray)
-        val decryptedMessageContent = decryptMessageContent(encryptedData, privateKey)
+//        val decryptedMessageContent = decryptMessageContent(encryptedData, privateKey)
 //
 //
 //        assertEquals(encryptedMessage1, PgpKeyGenerator.createEncryptedMessage(PgpKeyGenerator.decodeEncryptedMessage(encryptedMessage1)))
