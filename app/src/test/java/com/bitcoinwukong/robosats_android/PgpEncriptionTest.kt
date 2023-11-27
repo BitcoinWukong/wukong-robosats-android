@@ -1,7 +1,6 @@
 package com.bitcoinwukong.robosats_android
 
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.createArmoredEncryptedMessage
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.createPGPEncryptedDataByteArray
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKeys
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.encryptMessage
@@ -271,14 +270,18 @@ class PgpKeyGeneratorTest {
         val token = "BFK7MX9J3bxiOQzz4tWylTM9BqL6HRVIFIMp"
         val expectedEncryptedMessage =
             "-----BEGIN PGP MESSAGE-----\\\\wV4DVRRUcH0Pq9QSAQdA+z5qZG4UQ4XZW80hjHdGwbNSrL7zO45csZpw5JuO\\4jUwEpBa4zr4w8FLaQ+srHqC9Bmyac3ZUN/EI4b3CgWbmIHumNNzwgn1nAth\\AIsJLEdTwV4DcDBaMBvbOlISAQdA+rmSu7t9XEhW0677kn+IsPaY2jADrDKl\\FFQ5HJeVpjIwCC+ry0SDlhSQphIHyFKyo2oV4YSVVsP5N2MkWBaYptYLRuxR\\BI6QjHHIR4Wc4C970rwBC0bPUi+Eyjvpc622b8ndg2G6STQwwfUlZjuASZ0z\\UdTKD9qA2eT7cvFVXXGe6hsEUbP+ZUtGgY9xUAiXXjavL92M30yg//SJKq2p\\MvCrtEnAZxYRsZjZzS4lTNSTMQf1IANuQXL4Zx5rc072OBgLuKbvC2AfzY8f\\qH57cNb2l7OGmjbSzfe6w1freIVKh2g/kVs5tXzYMm0mm5TkBAWa5x5qFgSP\\aIJgvbQWBR7odUMDAsv7Px7p8H7IXw==\\=lFWF\\-----END PGP MESSAGE-----\\"
-        val message1 = "Hello"
+        val testMessage = "This is a test message"
 
         val (signatureKey, decryptionKey) = decryptPrivateKeys(encryptedPrivateKey, token)
 
         val publicKey = readPublicKey(publicKeyArmor)!!
         val publicKey2 = readPublicKey(publicKey2Armor)!!
-        val encryptedMessage = encryptMessage(message1, signatureKey, publicKey, publicKey2)
-        assertNotNull(encryptedMessage)
+        val encryptedMessage = encryptMessage(testMessage, signatureKey, publicKey, publicKey2)
+
+        assertEquals(
+            testMessage,
+            PgpKeyGenerator.decryptMessage(encryptedMessage, encryptedPrivateKey, token)
+        )
     }
 
     @Test
