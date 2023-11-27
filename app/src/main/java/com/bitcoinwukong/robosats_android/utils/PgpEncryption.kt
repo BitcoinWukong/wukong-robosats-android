@@ -119,7 +119,7 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("Unable to decrypt the message content with the provided private key")
     }
 
-    fun generatePGPLiteralData(message: String): PGPLiteralData? {
+    fun generatePGPLiteralData(message: String): PGPLiteralData {
         val byteStream = ByteArrayOutputStream()
 
         // Use PGPLiteralDataGenerator to generate literal data into a stream
@@ -140,7 +140,7 @@ object PgpKeyGenerator {
         val literalDataBytes = ByteArrayInputStream(byteStream.toByteArray())
         val pgpFact = PGPObjectFactory(literalDataBytes, JcaKeyFingerprintCalculator())
 
-        return pgpFact.nextObject() as? PGPLiteralData
+        return pgpFact.nextObject() as PGPLiteralData
     }
 
     fun decryptMessageContent(
