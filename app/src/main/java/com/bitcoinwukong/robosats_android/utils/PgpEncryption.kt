@@ -79,9 +79,8 @@ object PgpKeyGenerator {
     }
 
     fun decodeEncryptedMessage(encryptedMessage: String): PGPEncryptedDataList {
-        val encryptedMessage = encryptedMessage.replace("\\", "\n")
         val inputStream =
-            PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedMessage.toByteArray()))
+            PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedMessage.replace("\\", "\n").toByteArray()))
         val pgpObjectFactory = PGPObjectFactory(inputStream, JcaKeyFingerprintCalculator())
         return pgpObjectFactory.nextObject() as PGPEncryptedDataList
     }
@@ -272,12 +271,65 @@ object PgpKeyGenerator {
         signatureKey: PGPPrivateKey,
         senderPublicKey: PGPPublicKey,
         receiverPublicKey: PGPPublicKey
-        ) : String {
-        val generatedEncryptedData =
-            createPGPEncryptedDataByteArray(message, signatureKey, senderPublicKey)
-        val generatedEncryptedData2 =
-            createPGPEncryptedDataByteArray(message, signatureKey, receiverPublicKey)
-        return createArmoredEncryptedMessage(generatedEncryptedData, generatedEncryptedData2)
+    ): String {
+        val bOut = ByteArrayOutputStream()
+
+        // Common components (one-pass signature, literal data, and signature list)
+        val signatureData = createSignatureData(message, signatureKey)
+        bOut.write(signatureData)
+
+        // Encrypt for senderPublicKey
+        val encryptedData1 = encryptData(bOut.toByteArray(), senderPublicKey)
+
+        // Encrypt for receiverPublicKey
+        val encryptedData2 = encryptData(bOut.toByteArray(), receiverPublicKey)
+
+        // Combine encrypted data and create armored string
+        return createArmoredEncryptedMessage(encryptedData1, encryptedData2)
+    }
+
+    private fun createSignatureData(message: String, signatureKey: PGPPrivateKey): ByteArray {
+        val sigGen = PGPSignatureGenerator(
+            JcaPGPContentSignerBuilder(signatureKey.publicKeyPacket.algorithm, PGPUtil.SHA512).setProvider("BC")
+        ).apply {
+            init(PGPSignature.CANONICAL_TEXT_DOCUMENT, signatureKey)
+        }
+
+        val bOut = ByteArrayOutputStream()
+
+        // One-pass signature list
+        val onePassSignature = sigGen.generateOnePassVersion(false)
+        onePassSignature.encode(bOut)
+
+        // Literal data
+        val literalDataGen = PGPLiteralDataGenerator()
+        literalDataGen.open(bOut, PGPLiteralData.UTF8, "", Date(), ByteArray(256)).use { pOut ->
+            pOut.write(message.toByteArray())
+        }
+
+        // Signature list
+        sigGen.update(message.toByteArray())
+        val signature = sigGen.generate()
+        signature.encode(bOut)
+
+        return bOut.toByteArray()
+    }
+
+    private fun encryptData(data: ByteArray, publicKey: PGPPublicKey): ByteArray {
+        val buffer = ByteArrayOutputStream()
+        val encGen = PGPEncryptedDataGenerator(
+            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
+                .setSecureRandom(SecureRandom())
+                .setWithIntegrityPacket(true)
+                .setProvider("BC")
+        )
+        encGen.addMethod(JcePublicKeyKeyEncryptionMethodGenerator(publicKey).setProvider("BC"))
+
+        encGen.open(buffer, data.size.toLong()).use { encryptedOut ->
+            encryptedOut.write(data)
+        }
+
+        return buffer.toByteArray()
     }
 
     fun decryptMessageContent(
