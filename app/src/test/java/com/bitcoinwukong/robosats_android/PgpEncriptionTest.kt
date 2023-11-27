@@ -4,9 +4,6 @@ import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.createPGPEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKeys
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.extractPgpObjectsList
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPLiteralData
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPOnePassSignatureList
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generatePGPSignatureList
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.getEncryptedData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPGPLiteralData
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.readPublicKey
@@ -17,14 +14,12 @@ import org.bouncycastle.bcpg.ECSecretBCPGKey
 import org.bouncycastle.bcpg.PublicSubkeyPacket
 import org.bouncycastle.openpgp.PGPLiteralData
 import org.bouncycastle.openpgp.PGPOnePassSignatureList
-import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData
 import org.bouncycastle.openpgp.PGPSignatureList
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.Date
 
 class PgpKeyGeneratorTest {
     @Test
@@ -106,7 +101,7 @@ class PgpKeyGeneratorTest {
                 "=32+r\n" +
                 "-----END PGP PUBLIC KEY BLOCK-----"
         val keyId = 7088936486162781302
-        val pgpPrivateKey = PgpKeyGenerator.readPublicKey(pubKey)
+        val pgpPrivateKey = readPublicKey(pubKey)
         assertEquals(keyId, pgpPrivateKey!!.keyID)
     }
 
@@ -187,7 +182,7 @@ class PgpKeyGeneratorTest {
             "-----BEGIN PGP MESSAGE-----\\\\wV4DVRRUcH0Pq9QSAQdAZO7KAUrxMaUwULL+6EXVhOoYrQZON+Zyhq4Aw52m\\GiIwnrTQJT8rhO3x8TDHnFpvEA9Cas3Fm8p7v41Lj+Wu7ezndABXvJNuYF/m\\oz/o0eEXwV4DcDBaMBvbOlISAQdAEz9Ot7zLfWzVvCcJEsnV70PsHMkPIy9h\\fMiTvgNn1wUwd/t2IFFtKSPLtFKVnRyvBIrj/vR+0xDE1cgj0KDJ9/AJ3i9o\\0U0jbM2VNMqQ+qJM0sAJAaR5/hEEl6JrhRQzm/AYwdNJV00AOAJG57wLial+\\t1k4m34pFvkVdDycKSRWv92ob07EvzuAwbEHnXMqnBcTSTX3hWe1juj6Kwuo\\SMArMQhOlU2ao0DgN9HJd4hYI6DpkURaRZyxp+c7H+uBUHN7XYGiUuuKmfFs\\4M0A/qYC5PxAuDnq4/xe8mipl+Id9a5pYTO4BJLIYDOK1CcQ0hPS9mnL+/u7\\5cyopyr5tc988c8BPpmg3TfOs+2dLDHamHjWM3+77J4kNYZQ\\=CQvx\\-----END PGP MESSAGE-----\\"
         val message2 = "How are you doing?"
 
-        val (signatureKey, decryptionKey)  = decryptPrivateKeys(encryptedPrivateKey, token)
+        val (signatureKey, decryptionKey) = decryptPrivateKeys(encryptedPrivateKey, token)
         val encryptedData = getEncryptedData(encryptedMessage1, decryptionKey)
         val pgpObjectsList = extractPgpObjectsList(encryptedData, decryptionKey)
 
@@ -214,15 +209,6 @@ class PgpKeyGeneratorTest {
         val signature = pgpObjectsList[2] as PGPSignatureList
         val generatedSignature = generatedPgpObjectsList[2] as PGPSignatureList
         assertNotNull(generatedSignature)
-
-//        // Test generatePGPLiteralData
-//        val timestamp: Long = 1700791166L
-//        val generatedLiteralData = generatePGPLiteralData(message1, Date(timestamp * 1000))
-//
-
-
-//        val generatedSignature = generatePGPSignatureList(generatedLiteralData, signatureKey)
-
     }
 
 //    fun testCreatingPGPPublicKeyEncryptedData() {
