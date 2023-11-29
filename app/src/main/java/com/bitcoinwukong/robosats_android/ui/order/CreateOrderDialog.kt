@@ -1,7 +1,16 @@
 package com.bitcoinwukong.robosats_android.ui.order
 
+import android.app.TimePickerDialog
 import android.content.Context
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -11,10 +20,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
@@ -22,6 +35,11 @@ import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.OrderParams
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 @Composable
 fun CreateOrderDialog(
@@ -47,9 +65,30 @@ fun CreateOrderDialog(
 @Composable
 fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var currentParams by remember { mutableStateOf(loadOrderParams(context)) }
+    var expirationTime by remember { mutableStateOf(LocalTime.now()) }
 
-    var currentParams by remember {
-        mutableStateOf(loadOrderParams(context))
+    fun showTimePicker() {
+        coroutineScope.launch {
+            val timePickerListener = TimePickerDialog.OnTimeSetListener { _, hourOfDay, minute ->
+                expirationTime = LocalTime.of(hourOfDay, minute)
+                // Additional logic after time selection
+            }
+
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, expirationTime.hour)
+                set(Calendar.MINUTE, expirationTime.minute)
+            }
+
+            TimePickerDialog(
+                context,
+                timePickerListener,
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                true // is24HourView
+            ).show()
+        }
     }
 
     Column {
@@ -113,6 +152,43 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
                 label = { Text("Custom Payment Method") }
             )
         }
+
+        // Calculate and Display Selected DateTime
+        val currentDateTime = LocalDateTime.now()
+        val currentTime = currentDateTime.toLocalTime()
+        val currentDate = currentDateTime.toLocalDate()
+
+        val expirationDate = if (expirationTime.isAfter(currentTime)) {
+            currentDate // Use today's date if the selected time is ahead of the current time
+        } else {
+            currentDate.plusDays(1) // Use tomorrow's date otherwise
+        }
+
+        val selectedDateTime = LocalDateTime.of(expirationDate, expirationTime)
+        val formattedDateTime =
+            selectedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            OutlinedTextField(
+                value = formattedDateTime,
+                onValueChange = {}, // No action needed as it's read-only
+                label = { Text("Expiration Time") },
+                readOnly = true,
+                modifier = Modifier.weight(1f).padding(end = 8.dp) // Give it a weight and end padding
+            )
+
+//            Spacer(modifier = Modifier.width(8.dp)) // Spacing between the text field and button
+            Button(
+                onClick = { showTimePicker() },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+                Text("Change")
+            }
+        }
+
+
         Button(
             onClick = {
                 val orderAmount = currentParams.amount.toDoubleOrNull()
@@ -164,15 +240,17 @@ private fun loadOrderParams(context: Context): OrderParams {
                 PaymentMethod.USDT.name
             ) ?: PaymentMethod.USDT.name
         ),
-        premium = sharedPrefs.getString("premium", "") ?: ""
+        premium = sharedPrefs.getString("premium", "") ?: "",
     )
 }
 
 @Preview(showBackground = true)
 @Composable
 fun CreateOrderContentPreview() {
-    RobosatsAndroidTheme {
-        CreateOrderContent({})
+    Box(modifier = Modifier.width(300.dp)) {
+        RobosatsAndroidTheme {
+            CreateOrderContent({})
+        }
     }
 }
 
