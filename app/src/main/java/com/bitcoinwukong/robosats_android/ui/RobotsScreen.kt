@@ -62,9 +62,9 @@ fun RobotsScreen(viewModel: ISharedViewModel = viewModel()) {
     // Triggered when "Create Order" button is clicked
     if (showCreateOrderDialog) {
         CreateOrderDialog(
-            onCreateOrder = { orderData ->
+            onCreateOrder = { createOrderParams ->
                 // Implement order creation logic
-                viewModel.createOrder(orderData)
+                viewModel.createOrder(createOrderParams)
                 showCreateOrderDialog = false
             },
             onDismiss = { showCreateOrderDialog = false }

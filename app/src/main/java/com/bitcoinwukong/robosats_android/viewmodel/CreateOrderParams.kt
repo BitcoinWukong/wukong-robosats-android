@@ -5,7 +5,7 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import java.time.LocalTime
 
-data class OrderParams(
+data class CreateOrderParams(
     var orderType: OrderType = OrderType.BUY,
     var currency: Currency = Currency.USD,
     var amount: String = "",

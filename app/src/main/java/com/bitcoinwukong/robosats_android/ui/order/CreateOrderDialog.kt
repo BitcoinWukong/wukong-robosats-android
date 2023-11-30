@@ -5,10 +5,8 @@ import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,21 +27,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.model.Currency
-import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
-import com.bitcoinwukong.robosats_android.viewmodel.OrderParams
+import com.bitcoinwukong.robosats_android.utils.convertExpirationTimeToExpirationDateTime
+import com.bitcoinwukong.robosats_android.viewmodel.CreateOrderParams
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Calendar
 
 @Composable
 fun CreateOrderDialog(
-    onCreateOrder: (OrderData) -> Unit,
+    onCreateOrder: (CreateOrderParams) -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -63,22 +61,24 @@ fun CreateOrderDialog(
 }
 
 @Composable
-fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
+fun CreateOrderContent(onCreateOrder: (CreateOrderParams) -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var currentParams by remember { mutableStateOf(loadOrderParams(context)) }
-    var expirationTime by remember { mutableStateOf(LocalTime.now()) }
 
     fun showTimePicker() {
         coroutineScope.launch {
             val timePickerListener = TimePickerDialog.OnTimeSetListener { _, hourOfDay, minute ->
-                expirationTime = LocalTime.of(hourOfDay, minute)
-                // Additional logic after time selection
+                val newExpirationTime = LocalTime.of(hourOfDay, minute)
+                currentParams = currentParams.copy(expirationTime = newExpirationTime)
+                saveOrderParams(context, currentParams)
             }
 
             val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, expirationTime.hour)
-                set(Calendar.MINUTE, expirationTime.minute)
+                currentParams.expirationTime?.let {
+                    set(Calendar.HOUR_OF_DAY, it.hour)
+                    set(Calendar.MINUTE, it.minute)
+                }
             }
 
             TimePickerDialog(
@@ -153,18 +153,8 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
             )
         }
 
-        // Calculate and Display Selected DateTime
-        val currentDateTime = LocalDateTime.now()
-        val currentTime = currentDateTime.toLocalTime()
-        val currentDate = currentDateTime.toLocalDate()
-
-        val expirationDate = if (expirationTime.isAfter(currentTime)) {
-            currentDate // Use today's date if the selected time is ahead of the current time
-        } else {
-            currentDate.plusDays(1) // Use tomorrow's date otherwise
-        }
-
-        val selectedDateTime = LocalDateTime.of(expirationDate, expirationTime)
+        val selectedDateTime =
+            convertExpirationTimeToExpirationDateTime(currentParams.expirationTime)
         val formattedDateTime =
             selectedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
         Row(
@@ -176,10 +166,11 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
                 onValueChange = {}, // No action needed as it's read-only
                 label = { Text("Expiration Time") },
                 readOnly = true,
-                modifier = Modifier.weight(1f).padding(end = 8.dp) // Give it a weight and end padding
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp) // Give it a weight and end padding
             )
 
-//            Spacer(modifier = Modifier.width(8.dp)) // Spacing between the text field and button
             Button(
                 onClick = { showTimePicker() },
                 modifier = Modifier.wrapContentWidth()
@@ -188,21 +179,13 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
             }
         }
 
-
         Button(
             onClick = {
                 val orderAmount = currentParams.amount.toDoubleOrNull()
                 val orderPremium = currentParams.premium.toDoubleOrNull()
 
                 if (orderAmount != null && orderPremium != null) {
-                    val orderData = OrderData(
-                        type = currentParams.orderType,
-                        currency = currentParams.currency,
-                        amount = orderAmount,
-                        paymentMethod = currentParams.paymentMethod,
-                        premium = orderPremium,
-                    )
-                    onCreateOrder(orderData)
+                    onCreateOrder(currentParams)
                 }
             },
             enabled = currentParams.amount.isNotBlank() && currentParams.premium.isNotBlank()
@@ -212,7 +195,7 @@ fun CreateOrderContent(onCreateOrder: (OrderData) -> Unit) {
     }
 }
 
-private fun saveOrderParams(context: Context, orderParams: OrderParams) {
+private fun saveOrderParams(context: Context, orderParams: CreateOrderParams) {
     val sharedPrefs = context.getSharedPreferences("OrderParams", Context.MODE_PRIVATE)
     sharedPrefs.edit().apply {
         putString("orderType", orderParams.orderType.name)
@@ -220,13 +203,29 @@ private fun saveOrderParams(context: Context, orderParams: OrderParams) {
         putString("amount", orderParams.amount)
         putString("paymentMethod", orderParams.paymentMethod.name)
         putString("premium", orderParams.premium)
+        orderParams.expirationTime?.let { expirationTime ->
+            putString("expirationTime", expirationTime.toString())
+        }
         apply()
     }
 }
 
-private fun loadOrderParams(context: Context): OrderParams {
+private fun loadOrderParams(context: Context): CreateOrderParams {
     val sharedPrefs = context.getSharedPreferences("OrderParams", Context.MODE_PRIVATE)
-    return OrderParams(
+
+    val expirationTimeString = sharedPrefs.getString("expirationTime", null)
+    var expirationTime: LocalTime? = null
+
+    // Convert String to LocalTime
+    if (expirationTimeString != null) {
+        try {
+            expirationTime = LocalTime.parse(expirationTimeString)
+        } catch (e: DateTimeParseException) {
+            expirationTime = null // or handle the error as needed
+        }
+    }
+
+    return CreateOrderParams(
         orderType = OrderType.valueOf(
             sharedPrefs.getString("orderType", OrderType.BUY.name) ?: OrderType.BUY.name
         ),
@@ -241,6 +240,7 @@ private fun loadOrderParams(context: Context): OrderParams {
             ) ?: PaymentMethod.USDT.name
         ),
         premium = sharedPrefs.getString("premium", "") ?: "",
+        expirationTime = expirationTime
     )
 }
 

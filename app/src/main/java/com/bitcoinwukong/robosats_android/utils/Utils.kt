@@ -19,11 +19,11 @@ fun parseDateTime(dateTimeString: String?): LocalDateTime? {
     }
 }
 
-fun convertExpirationTimeToExpirationSeconds(expirationTime: LocalTime?): Int {
+fun convertExpirationTimeToExpirationDateTime(expirationTime: LocalTime?): LocalDateTime {
     val currentDateTime = LocalDateTime.now()
 
     // Check if expirationTime has been set by the user
-    val expirationDateTime = if (expirationTime != null) {
+    return if (expirationTime != null) {
         val currentTime = currentDateTime.toLocalTime()
         val currentDate = currentDateTime.toLocalDate()
 
@@ -38,6 +38,14 @@ fun convertExpirationTimeToExpirationSeconds(expirationTime: LocalTime?): Int {
         // Handle the case where expirationTime is null
         currentDateTime.plusDays(1) // Default to 24 hours from now if no time is set
     }
+}
+
+
+fun convertExpirationTimeToExpirationSeconds(expirationTime: LocalTime?): Int {
+    val currentDateTime = LocalDateTime.now()
+
+    // Check if expirationTime has been set by the user
+    val expirationDateTime = convertExpirationTimeToExpirationDateTime(expirationTime)
 
     // Calculate publicDuration as the difference in seconds between the current time and the expiration time
     return Duration.between(currentDateTime, expirationDateTime).seconds.toInt()

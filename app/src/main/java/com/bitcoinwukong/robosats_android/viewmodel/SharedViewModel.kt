@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
+import com.bitcoinwukong.robosats_android.utils.convertExpirationTimeToExpirationSeconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -176,20 +177,19 @@ class SharedViewModel(
         updateSelectedRobot(token)
     }
 
-    override fun createOrder(
-        orderData: OrderData
-    ) {
+    override fun createOrder(createOrderParams: CreateOrderParams) {
         val robot = _selectedRobot.value ?: return
         updateRobotInfoInMap(robot.token, null) // Clear robot info cache
         viewModelScope.launch {
             // Todo: update view model and UI base on the order creation result
             val result = torRepository.makeOrder(
                 robot.token,
-                orderData.type,
-                orderData.currency,
-                amount = orderData.amount.toString(),
-                paymentMethod = orderData.paymentMethod,
-                premium = orderData.premium?.toString() ?: "",
+                createOrderParams.orderType,
+                createOrderParams.currency,
+                amount = createOrderParams.amount,
+                paymentMethod = createOrderParams.paymentMethod,
+                premium = createOrderParams.premium,
+                publicDuration = convertExpirationTimeToExpirationSeconds(createOrderParams.expirationTime)
             )
             result.onSuccess {
                 fetchRobotInfo(robot.token)
