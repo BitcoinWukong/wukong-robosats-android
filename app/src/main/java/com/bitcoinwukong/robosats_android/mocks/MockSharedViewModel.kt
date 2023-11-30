@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.viewmodel.CreateOrderParams
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 import java.time.LocalDateTime
 
@@ -61,7 +62,7 @@ class MockSharedViewModel(
         Log.d("MockSharedViewModel", "removeRobot called")
     }
 
-    override fun createOrder(orderData: OrderData) {
+    override fun createOrder(createOrderParams: CreateOrderParams) {
         Log.d("MockSharedViewModel", "createOrder called")
     }
 

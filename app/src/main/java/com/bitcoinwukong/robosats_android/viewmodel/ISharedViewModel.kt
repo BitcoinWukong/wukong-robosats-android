@@ -34,7 +34,7 @@ interface ISharedViewModel {
     fun addRobot(token: String)
     fun removeRobot(token: String)
 
-    fun createOrder(orderData: OrderData)
+    fun createOrder(createOrderParams: CreateOrderParams)
     fun takeOrder(orderData: OrderData)
     fun confirmOrderFiatReceived(orderData: OrderData)
 
