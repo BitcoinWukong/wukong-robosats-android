@@ -311,8 +311,8 @@ class TorRepository(val torManager: ITorManager) {
         isExplicit: Boolean = false,
         premium: String = "0",
         satoshis: Int? = null, // Required if isExplicit is true
-        publicDuration: Int = 86400,
-        escrowDuration: Int = 1800,
+        publicDuration: Int = 24 * 60 * 60,
+        escrowDuration: Int = 3 * 60 * 60,
         bondSize: String = "3.0",
         latitude: String? = null,
         longitude: String? = null
