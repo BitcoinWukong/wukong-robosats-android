@@ -60,6 +60,8 @@ class SharedViewModel(
 
     override val chatMessages: LiveData<List<String>> get() = _chatMessages
 
+    private val _orderIdPeerPublicKeyMap: MutableMap<Int, String> = mutableMapOf()
+
     private val _ordersCache = mutableMapOf<Int, OrderData>()
 
     override fun restartTor() {
@@ -289,9 +291,12 @@ class SharedViewModel(
     override fun getChatMessages(robot: Robot, orderId: Int) {
         viewModelScope.launch {
             val result = torRepository.getChatMessages(robot, orderId)
-            result.onSuccess { messages ->
+            result.onSuccess { chatMessagesResponse ->
                 Log.d(TAG, "getChatMessages succeeded: ")
 
+                _orderIdPeerPublicKeyMap[orderId] = chatMessagesResponse.peerPublicKey
+
+                val messages = chatMessagesResponse.messages
                 // Sort messages by index incrementally
                 val sortedMessages = messages.sortedBy { it.index }
                 val decryptedMessagesDeferred = sortedMessages.map { message ->
@@ -314,6 +319,18 @@ class SharedViewModel(
             }.onFailure { e ->
                 Log.e(TAG, "getChatMessages failed: ${e.message}")
             }
+        }
+    }
+
+    override fun sendChatMessage(robot: Robot, orderId: Int, message: String) {
+        _orderIdPeerPublicKeyMap[orderId]?.let { peerPublicKey ->
+            // If the peer public key is not null, send the chat message
+            viewModelScope.launch {
+                torRepository.sendChatMessage(robot, orderId, peerPublicKey, message)
+            }
+        } ?: run {
+            // If the peer public key is null, log an error
+            Log.e(TAG, "missing peer public key for order: $orderId")
         }
     }
 

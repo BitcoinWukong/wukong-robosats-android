@@ -37,11 +37,12 @@ import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
+import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
+fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
     val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
     var currentMessage by remember { mutableStateOf("") }
     var showConfirmationDialog by remember { mutableStateOf(false) }
@@ -77,7 +78,9 @@ fun ChatMessages(viewModel: ISharedViewModel, order: OrderData) {
                 ) // Custom colors if needed
             )
             FloatingActionButton(
-                onClick = {},
+                onClick = {
+                    viewModel.sendChatMessage(robot, order.id!!, currentMessage)
+                },
                 modifier = Modifier
                     .size(56.dp) // Typical size for a FAB
             ) {
@@ -168,8 +171,12 @@ fun ChatMessagesPreview_Seller() {
         status = OrderStatus.FIAT_SENT_IN_CHATROOM, // Example order status
         isSeller = true,
     )
+    val robot1 = Robot(
+        "token1",
+        nickname = "robot1",
+    )
 
     Box(modifier = Modifier.size(350.dp)) {
-        ChatMessages(viewModel = mockViewModel, order = mockOrder)
+        ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
     }
 }

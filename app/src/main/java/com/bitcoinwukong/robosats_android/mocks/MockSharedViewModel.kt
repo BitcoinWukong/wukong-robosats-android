@@ -87,6 +87,10 @@ class MockSharedViewModel(
         Log.d("MockSharedViewModel", "getChatMessages called")
     }
 
+    override fun sendChatMessage(robot: Robot, orderId: Int, message: String) {
+        TODO("Not yet implemented")
+    }
+
     override fun cancelOrder(robot: Robot, orderId: Int) {
         Log.d("MockSharedViewModel", "cancelOrder called")
     }

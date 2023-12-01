@@ -96,7 +96,7 @@ private fun OrderStatusContent(
 
         order.isChatting() -> {
             viewModel.getChatMessages(robot, orderId)
-            ChatMessages(viewModel, order)
+            ChatMessages(viewModel, robot, order)
         }
 
         else -> when (order.status) {
