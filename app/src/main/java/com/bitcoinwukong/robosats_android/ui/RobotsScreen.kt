@@ -36,7 +36,6 @@ import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.order.CreateOrderDialog
-import com.bitcoinwukong.robosats_android.ui.robot.RobotDetails
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 import com.bitcoinwukong.robosats_android.viewmodel.RobotDropdownItem

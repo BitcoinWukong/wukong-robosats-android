@@ -18,6 +18,7 @@ class MockSharedViewModel(
     selectedRobot: Robot? = null,
     activeOrder: OrderData? = null,
     isTorReady: Boolean = true,
+    chatMessages: List<String> = emptyList(),
 ) : ISharedViewModel {
     override val orders = MutableLiveData(ordersList)
 
@@ -27,7 +28,7 @@ class MockSharedViewModel(
         MutableLiveData(selectedToken ?: selectedRobot?.token ?: "")
     override val selectedRobot: LiveData<Robot?> = MutableLiveData(selectedRobot)
     override val activeOrder: LiveData<OrderData?> = MutableLiveData(activeOrder)
-    override val chatMessages: LiveData<List<String>> = MutableLiveData(emptyList())
+    override val chatMessages: LiveData<List<String>> = MutableLiveData(chatMessages)
     override val torManagerEvents: LiveData<String> = MutableLiveData("")
     override val lastUpdated: LiveData<LocalDateTime> = MutableLiveData(LocalDateTime.now())
     override val isUpdating: LiveData<Boolean> = MutableLiveData(isUpdating)

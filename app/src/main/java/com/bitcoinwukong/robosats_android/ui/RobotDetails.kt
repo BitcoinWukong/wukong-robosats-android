@@ -1,4 +1,4 @@
-package com.bitcoinwukong.robosats_android.ui.robot
+package com.bitcoinwukong.robosats_android.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +20,7 @@ import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.ui.order.OrderDetailsContent
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
 @Composable
