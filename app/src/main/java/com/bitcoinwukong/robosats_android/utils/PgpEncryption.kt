@@ -7,6 +7,7 @@ import org.bouncycastle.bcpg.BCPGInputStream
 import org.bouncycastle.bcpg.BCPGObject
 import org.bouncycastle.bcpg.BCPGOutputStream
 import org.bouncycastle.bcpg.ECSecretBCPGKey
+import org.bouncycastle.bcpg.EdSecretBCPGKey
 import org.bouncycastle.bcpg.PublicKeyPacket
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
@@ -400,15 +401,18 @@ object PgpKeyGenerator {
         return Base64.getEncoder().encodeToString(byteStream.toByteArray())
     }
 
-    fun deserializePGPPrivateKey(serializedKey: String): PGPPrivateKey {
+    fun deserializePGPPrivateKey(serializedKey: String, isSigningKey: Boolean): PGPPrivateKey {
         val data = Base64.getDecoder().decode(serializedKey)
         val byteStream = ByteArrayInputStream(data)
         val dataIn = DataInputStream(byteStream)
         val keyID = dataIn.readLong()
         val bcpgIn = BCPGInputStream(dataIn)
         val publicKeyPacket = bcpgIn.readPacket() as PublicKeyPacket
-        val privateDataPacket = ECSecretBCPGKey(bcpgIn)
-
+        val privateDataPacket = if (isSigningKey) {
+            EdSecretBCPGKey(bcpgIn)
+        } else {
+            ECSecretBCPGKey(bcpgIn)
+        }
         return PGPPrivateKey(keyID, publicKeyPacket, privateDataPacket)
     }
 

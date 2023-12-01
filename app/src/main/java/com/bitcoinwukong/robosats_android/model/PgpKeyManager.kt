@@ -34,8 +34,8 @@ object PgpKeyManager {
                 val serializedSigningKey = serializedBundle.getString("signingKey")
                 val serializedEncryptionKey = serializedBundle.getString("encryptionKey")
 
-                val signingKey = deserializePGPPrivateKey(serializedSigningKey)
-                val encryptionKey = deserializePGPPrivateKey(serializedEncryptionKey)
+                val signingKey = deserializePGPPrivateKey(serializedSigningKey, true)
+                val encryptionKey = deserializePGPPrivateKey(serializedEncryptionKey, false)
 
                 decryptionMap[key] = PGPPrivateKeyBundle(signingKey, encryptionKey)
 
