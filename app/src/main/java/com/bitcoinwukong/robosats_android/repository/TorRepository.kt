@@ -11,7 +11,6 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.network.ITorManager
-import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.encryptMessage
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_MAINNET
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_TESTNET
 import com.bitcoinwukong.robosats_android.utils.TOR_SOCKS_PORT
@@ -28,8 +27,6 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import org.bouncycastle.openpgp.PGPPrivateKey
-import org.bouncycastle.openpgp.PGPPublicKey
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -252,7 +249,7 @@ class TorRepository(val torManager: ITorManager) {
                     TAG,
                     "getRobotInfo succeeded: ${robot.token}, ${robot.publicKey}, ${robot.encryptedPrivateKey}"
                 )
-                if (robot.pgpPrivateKey == null) {
+                if (robot.privateKeyBundle == null) {
                     val currentSet = _loadingRobots.value.orEmpty()
                     _loadingRobots.postValue(currentSet + robot)
                 }
@@ -315,14 +312,7 @@ class TorRepository(val torManager: ITorManager) {
         peerPublicKey: String,
         message: String
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
-//        val pgpMessage = encryptMessage(
-//            message,
-//            robot.pgpPrivateKey!!,
-//            robot.publicKey,
-//            peerPublicKey,
-//        )
-        val pgpMessage = message
-
+        val pgpMessage = robot.encryptMessage(message, peerPublicKey)
         val formBodyParams = mapOf(
             "PGP_message" to pgpMessage,
             "order_id" to orderId.toString(),

@@ -20,6 +20,7 @@ import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.model.errorRobot
 import com.bitcoinwukong.robosats_android.ui.order.OrderDetailsContent
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
@@ -93,9 +94,8 @@ fun RobotDetailsPreview_LoadingRobot() {
 @Composable
 fun RobotDetailsPreviewErrorMessage() {
     Box(modifier = Modifier.size(300.dp)) {
-        val robot = Robot(
-            "token1",
-            errorMessage = "Unable to load robot"
+        val robot = errorRobot(
+            "token1", "Unable to load robot",
         )
         RobotDetails(MockSharedViewModel(), "token1", robot) {}
     }
@@ -108,6 +108,7 @@ fun RobotDetailsPreviewNoActiveOrder() {
         val robot1 = Robot(
             "token1",
             nickname = "robot1",
+            publicKey = "pubkey123456",
         )
         RobotDetails(MockSharedViewModel(), "token1", robot1) {}
     }
@@ -127,6 +128,7 @@ fun RobotDetailsPreviewActiveOrder() {
         val robot1 = Robot(
             "token1",
             activeOrderId = 91593,
+            publicKey = "pubkey123456",
         )
         val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
         RobotDetails(mockSharedViewModel, "token1", robot1) {}

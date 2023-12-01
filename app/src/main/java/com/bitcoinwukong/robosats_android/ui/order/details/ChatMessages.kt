@@ -174,6 +174,7 @@ fun ChatMessagesPreview_Seller() {
     val robot1 = Robot(
         "token1",
         nickname = "robot1",
+        publicKey = "pubkey123456",
     )
 
     Box(modifier = Modifier.size(350.dp)) {

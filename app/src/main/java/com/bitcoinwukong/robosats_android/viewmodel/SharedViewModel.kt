@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.model.errorRobot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
 import com.bitcoinwukong.robosats_android.utils.convertExpirationTimeToExpirationSeconds
 import kotlinx.coroutines.Dispatchers
@@ -124,7 +125,7 @@ class SharedViewModel(
                 Log.d(TAG, "Fetched robot info: ${robot.nickname}")
             }.onFailure { e ->
                 val errorMessageRobot =
-                    Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
+                    errorRobot(token, "Error fetching robot info: ${e.message}")
                 updateRobotInfoInMap(token, errorMessageRobot)
                 Log.e(TAG, "Error fetching robot info: ${e.message}")
             }

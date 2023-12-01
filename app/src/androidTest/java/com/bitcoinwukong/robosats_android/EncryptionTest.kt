@@ -37,7 +37,7 @@ class EncryptionTest {
         val pgpPrivateKey = PgpKeyGenerator.decryptPrivateKeys(
             encryptedPrivateKey,
             token
-        ).second
+        ).encryptionKey
         Assert.assertEquals(keyId, pgpPrivateKey.keyID)
     }
 

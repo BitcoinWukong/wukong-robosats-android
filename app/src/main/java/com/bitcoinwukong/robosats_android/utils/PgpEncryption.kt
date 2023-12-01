@@ -1,6 +1,7 @@
 package com.bitcoinwukong.robosats_android.utils
 
-
+import com.bitcoinwukong.robosats_android.model.PGPPrivateKeyBundle
+import com.bitcoinwukong.robosats_android.model.PGPPublicKeyBundle
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.BCPGInputStream
 import org.bouncycastle.bcpg.BCPGOutputStream
@@ -57,7 +58,7 @@ object PgpKeyGenerator {
     fun decryptPrivateKeys(
         encryptedPrivateKey: String,
         passphrase: String
-    ): Pair<PGPPrivateKey, PGPPrivateKey> {
+    ): PGPPrivateKeyBundle {
         val secretKeyRingCollection = PGPSecretKeyRingCollection(
             PGPUtil.getDecoderStream(ByteArrayInputStream(encryptedPrivateKey.toByteArray())),
             JcaKeyFingerprintCalculator()
@@ -72,7 +73,7 @@ object PgpKeyGenerator {
             val primaryKey = keyList[0].extractPrivateKey(decryptor)
             val subKey = keyList[1].extractPrivateKey(decryptor)
 
-            return Pair(primaryKey, subKey)
+            return PGPPrivateKeyBundle(primaryKey, subKey)
         }
 
         throw IllegalArgumentException("Unable to decrypt private key $encryptedPrivateKey")
@@ -462,10 +463,10 @@ object PgpKeyGenerator {
         passphrase: String
     ): String {
         val pgpPrivateKeys = decryptPrivateKeys(encryptedPrivateKey, passphrase)
-        return decryptMessage(encryptedMessage, pgpPrivateKeys.second)
+        return decryptMessage(encryptedMessage, pgpPrivateKeys.encryptionKey)
     }
 
-    fun readPublicKey(armoredPublicKey: String): PGPPublicKey? {
+    fun readPublicKey(armoredPublicKey: String): PGPPublicKeyBundle {
         val inputStream: InputStream =
             ByteArrayInputStream(armoredPublicKey.toByteArray(Charsets.UTF_8))
         val pgpObjectFactory = PGPUtil.getDecoderStream(inputStream)
@@ -474,7 +475,7 @@ object PgpKeyGenerator {
         val pgpPubKeyRing = pgpPubKeyRingCollection.iterator().next()
         val keys = pgpPubKeyRing.publicKeys.asSequence().toList()
 
-        return keys[1]
+        return PGPPublicKeyBundle(keys[0], keys[1])
     }
 
     private fun generateSecretKey(

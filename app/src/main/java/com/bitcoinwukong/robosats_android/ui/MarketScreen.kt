@@ -86,7 +86,7 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
                             (selectedTabIndex == 1 && order.type == OrderType.SELL)
                 }) { order ->
                     OrderRow(order) {
-                        if (selectedRobot?.pgpPrivateKey == null) {
+                        if (selectedRobot?.privateKeyBundle == null) {
                             alertText =
                                 "No active robot available, please create a robot or wait until its loading is completed"
                             showAlert = true

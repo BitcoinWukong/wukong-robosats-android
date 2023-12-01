@@ -197,6 +197,7 @@ fun RobotsScreenPreview() {
         val robot1 = Robot(
             "token1",
             nickname = "robot1",
+            publicKey = "pubkey123456",
         )
         val robotsInfoMap = mapOf(
             "token1" to robot1

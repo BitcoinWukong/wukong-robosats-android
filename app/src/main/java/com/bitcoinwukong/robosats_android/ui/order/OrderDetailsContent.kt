@@ -231,6 +231,7 @@ fun LoadingOrderDetailsPreview() {
     val robot1 = Robot(
         "token1",
         activeOrderId = 91593,
+        publicKey = "pubkey123456",
     )
     val mockSharedViewModel = MockSharedViewModel(emptyList(), false, activeOrder = null)
     Row(modifier = Modifier.width(350.dp)) {
@@ -254,6 +255,7 @@ fun PauseOrderDetailsPreview() {
     val robot1 = Robot(
         "token1",
         activeOrderId = 91593,
+        publicKey = "pubkey123456",
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     Row(modifier = Modifier.size(350.dp)) {
@@ -272,6 +274,7 @@ fun ResumeOrderDetailsPreview() {
     val robot1 = Robot(
         "token1",
         activeOrderId = 91593,
+        publicKey = "pubkey123456",
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     Row(modifier = Modifier.size(350.dp)) {
@@ -295,6 +298,7 @@ fun WaitingForMakerBondOrderDetailsPreview() {
         "token1",
         nickname = "robot1",
         activeOrderId = 91593,
+        publicKey = "pubkey123456",
     )
     val mockSharedViewModel = MockSharedViewModel(listOf(order), false, activeOrder = order)
     Row(modifier = Modifier.size(350.dp)) {
