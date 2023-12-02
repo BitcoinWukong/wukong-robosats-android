@@ -189,25 +189,6 @@ object PgpKeyGenerator {
         return pgpData.get(0) as PGPPublicKeyEncryptedData
     }
 
-    fun createArmoredEncryptedMessage(
-        encryptedDataBytes1: ByteArray,
-        encryptedDataBytes2: ByteArray
-    ): String {
-        val combinedStream = ByteArrayOutputStream()
-
-        // Combine the two encrypted data byte arrays
-        combinedStream.write(encryptedDataBytes1)
-        combinedStream.write(encryptedDataBytes2)
-
-        // Convert the combined byte array into an armored string
-        return ByteArrayOutputStream().use { armoredStream ->
-            ArmoredOutputStream(armoredStream).use { armorOut ->
-                armorOut.write(combinedStream.toByteArray())
-            }
-            armoredStream.toString("UTF-8")
-        }.replace("\n", "\\")
-    }
-
     fun encryptMessage(
         message: String,
         signatureKey: PGPPrivateKey,
@@ -220,14 +201,43 @@ object PgpKeyGenerator {
         val signatureData = createSignatureData(message, signatureKey)
         bOut.write(signatureData)
 
-        // Encrypt for receiverPublicKey
-        val encryptedData1 = encryptData(bOut.toByteArray(), receiverPublicKey)
+        // Encrypt for both receiverPublicKey and senderPublicKey
+        val encryptedData = encryptDataForMultipleKeys(bOut.toByteArray(), listOf(receiverPublicKey, senderPublicKey))
 
-        // Encrypt for senderPublicKey
-        val encryptedData2 = encryptData(bOut.toByteArray(), senderPublicKey)
+        // Create armored string
+        return createArmoredEncryptedMessage(encryptedData)
+    }
 
-        // Combine encrypted data and create armored string
-        return createArmoredEncryptedMessage(encryptedData1, encryptedData2)
+    private fun encryptDataForMultipleKeys(data: ByteArray, publicKeys: List<PGPPublicKey>): ByteArray {
+        val buffer = ByteArrayOutputStream()
+        val encGen = PGPEncryptedDataGenerator(
+            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
+                .setSecureRandom(SecureRandom())
+                .setWithIntegrityPacket(true)
+                .setProvider("BC")
+        )
+
+        // Add all public keys to the encryption generator
+        publicKeys.forEach { publicKey ->
+            encGen.addMethod(JcePublicKeyKeyEncryptionMethodGenerator(publicKey).setProvider("BC"))
+        }
+
+        encGen.open(buffer, data.size.toLong()).use { encryptedOut ->
+            encryptedOut.write(data)
+        }
+
+        return buffer.toByteArray()
+    }
+
+    fun createArmoredEncryptedMessage(encryptedDataBytes: ByteArray): String {
+        // Convert the byte array into an armored string
+        return ByteArrayOutputStream().use { armoredStream ->
+            ArmoredOutputStream(armoredStream).use { armorOut ->
+                armorOut.setHeader("Version", null)
+                armorOut.write(encryptedDataBytes)
+            }
+            armoredStream.toString("UTF-8")
+        }.replace("\n", "\\")
     }
 
     private fun createSignatureData(message: String, signatureKey: PGPPrivateKey): ByteArray {
@@ -258,23 +268,6 @@ object PgpKeyGenerator {
         signature.encode(bOut)
 
         return bOut.toByteArray()
-    }
-
-    private fun encryptData(data: ByteArray, publicKey: PGPPublicKey): ByteArray {
-        val buffer = ByteArrayOutputStream()
-        val encGen = PGPEncryptedDataGenerator(
-            JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
-                .setSecureRandom(SecureRandom())
-                .setWithIntegrityPacket(true)
-                .setProvider("BC")
-        )
-        encGen.addMethod(JcePublicKeyKeyEncryptionMethodGenerator(publicKey).setProvider("BC"))
-
-        encGen.open(buffer, data.size.toLong()).use { encryptedOut ->
-            encryptedOut.write(data)
-        }
-
-        return buffer.toByteArray()
     }
 
     fun decryptMessageContent(
