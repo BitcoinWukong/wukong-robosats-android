@@ -44,5 +44,5 @@ interface ISharedViewModel {
     fun cancelOrder(robot: Robot, orderId: Int)
 
     fun getChatMessages(robot: Robot, orderId: Int)
-
+    fun sendChatMessage(robot: Robot, orderId: Int, message: String)
 }

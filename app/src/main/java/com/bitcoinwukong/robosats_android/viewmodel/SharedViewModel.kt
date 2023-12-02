@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.model.errorRobot
 import com.bitcoinwukong.robosats_android.repository.TorRepository
 import com.bitcoinwukong.robosats_android.utils.convertExpirationTimeToExpirationSeconds
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +60,8 @@ class SharedViewModel(
     private var _chatMessages = MutableLiveData<List<String>>(emptyList())
 
     override val chatMessages: LiveData<List<String>> get() = _chatMessages
+
+    private val _orderIdPeerPublicKeyMap: MutableMap<Int, String> = mutableMapOf()
 
     private val _ordersCache = mutableMapOf<Int, OrderData>()
 
@@ -122,7 +125,7 @@ class SharedViewModel(
                 Log.d(TAG, "Fetched robot info: ${robot.nickname}")
             }.onFailure { e ->
                 val errorMessageRobot =
-                    Robot(token = token, errorMessage = "Error fetching robot info: ${e.message}")
+                    errorRobot(token, "Error fetching robot info: ${e.message}")
                 updateRobotInfoInMap(token, errorMessageRobot)
                 Log.e(TAG, "Error fetching robot info: ${e.message}")
             }
@@ -289,9 +292,12 @@ class SharedViewModel(
     override fun getChatMessages(robot: Robot, orderId: Int) {
         viewModelScope.launch {
             val result = torRepository.getChatMessages(robot, orderId)
-            result.onSuccess { messages ->
+            result.onSuccess { chatMessagesResponse ->
                 Log.d(TAG, "getChatMessages succeeded: ")
 
+                _orderIdPeerPublicKeyMap[orderId] = chatMessagesResponse.peerPublicKey
+
+                val messages = chatMessagesResponse.messages
                 // Sort messages by index incrementally
                 val sortedMessages = messages.sortedBy { it.index }
                 val decryptedMessagesDeferred = sortedMessages.map { message ->
@@ -314,6 +320,23 @@ class SharedViewModel(
             }.onFailure { e ->
                 Log.e(TAG, "getChatMessages failed: ${e.message}")
             }
+        }
+    }
+
+    override fun sendChatMessage(robot: Robot, orderId: Int, message: String) {
+        _orderIdPeerPublicKeyMap[orderId]?.let { peerPublicKey ->
+            // If the peer public key is not null, send the chat message
+            viewModelScope.launch {
+                val result = torRepository.sendChatMessage(robot, orderId, peerPublicKey, message)
+                result.onSuccess { json ->
+                    Log.d(TAG, "sendChatMessage succeeded: $json")
+
+                    getChatMessages(robot, orderId)
+                }
+            }
+        } ?: run {
+            // If the peer public key is null, log an error
+            Log.e(TAG, "missing peer public key for order: $orderId")
         }
     }
 

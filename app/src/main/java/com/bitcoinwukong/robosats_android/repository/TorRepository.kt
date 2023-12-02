@@ -3,6 +3,7 @@ package com.bitcoinwukong.robosats_android.repository
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.bitcoinwukong.robosats_android.model.ChatMessagesResponse
 import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.Message
 import com.bitcoinwukong.robosats_android.model.OrderData
@@ -244,8 +245,11 @@ class TorRepository(val torManager: ITorManager) {
         ).fold(
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
-                Log.d(TAG, "getRobotInfo succeeded: ${robot.token}, ${robot.publicKey}, ${robot.encryptedPrivateKey}")
-                if (robot.pgpPrivateKey == null) {
+                Log.d(
+                    TAG,
+                    "getRobotInfo succeeded: ${robot.token}, ${robot.publicKey}, ${robot.encryptedPrivateKey}"
+                )
+                if (robot.privateKeyBundle == null) {
                     val currentSet = _loadingRobots.value.orEmpty()
                     _loadingRobots.postValue(currentSet + robot)
                 }
@@ -260,7 +264,7 @@ class TorRepository(val torManager: ITorManager) {
     suspend fun getChatMessages(
         robot: Robot,
         orderId: Int
-    ): Result<List<Message>> = withContext(Dispatchers.IO) {
+    ): Result<ChatMessagesResponse> = withContext(Dispatchers.IO) {
         val queryParams = mapOf(
             "order_id" to orderId.toString(),
         )
@@ -273,6 +277,9 @@ class TorRepository(val torManager: ITorManager) {
             queryParams = queryParams,
         ).fold(
             onSuccess = { jsonObject ->
+                val offset = jsonObject.optInt("offset", -1).takeIf { it >= 0 }
+                val peerConnected = jsonObject.getBoolean("peer_connected")
+                val peerPublicKey = jsonObject.getString("peer_pubkey")
                 val messagesJsonArray = jsonObject.optJSONArray("messages")
                 val messages = mutableListOf<Message>()
 
@@ -291,11 +298,31 @@ class TorRepository(val torManager: ITorManager) {
                     }
                 }
 
-                Result.success(messages)
+                Result.success(ChatMessagesResponse(messages, peerConnected, peerPublicKey, offset))
             },
             onFailure = { e ->
                 Result.failure(e)
             }
+        )
+    }
+
+    suspend fun sendChatMessage(
+        robot: Robot,
+        orderId: Int,
+        peerPublicKey: String,
+        message: String
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        val pgpMessage = robot.encryptMessage(message, peerPublicKey)
+        val formBodyParams = mapOf(
+            "PGP_message" to pgpMessage,
+            "order_id" to orderId.toString(),
+        )
+
+        makeGeneralRequest(
+            api = "chat",
+            token = robot.token,
+            formBodyParams = formBodyParams,
+            method = "POST"
         )
     }
 
