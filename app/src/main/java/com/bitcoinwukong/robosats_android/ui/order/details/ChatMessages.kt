@@ -80,6 +80,7 @@ fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
             FloatingActionButton(
                 onClick = {
                     viewModel.sendChatMessage(robot, order.id!!, currentMessage)
+                    currentMessage = ""
                 },
                 modifier = Modifier
                     .size(56.dp) // Typical size for a FAB

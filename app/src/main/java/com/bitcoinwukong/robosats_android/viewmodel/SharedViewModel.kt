@@ -327,7 +327,12 @@ class SharedViewModel(
         _orderIdPeerPublicKeyMap[orderId]?.let { peerPublicKey ->
             // If the peer public key is not null, send the chat message
             viewModelScope.launch {
-                torRepository.sendChatMessage(robot, orderId, peerPublicKey, message)
+                val result = torRepository.sendChatMessage(robot, orderId, peerPublicKey, message)
+                result.onSuccess { json ->
+                    Log.d(TAG, "sendChatMessage succeeded: $json")
+
+                    getChatMessages(robot, orderId)
+                }
             }
         } ?: run {
             // If the peer public key is null, log an error
