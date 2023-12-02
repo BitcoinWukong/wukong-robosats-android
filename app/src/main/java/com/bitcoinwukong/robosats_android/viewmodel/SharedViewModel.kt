@@ -116,9 +116,11 @@ class SharedViewModel(
     }
 
     private fun fetchRobotInfo(token: String) {
-        Log.d(TAG, "fetching robot info for $token")
+        val robot = _robotsInfoMap.value?.get(token)
+        Log.d(TAG, "fetching robot info for ${token}, ${robot?.publicKey}, ${robot?.encryptedPrivateKey}")
+
         viewModelScope.launch {
-            val result = torRepository.getRobotInfo(token)
+            val result = torRepository.getRobotInfo(token, robot?.publicKey, robot?.encryptedPrivateKey)
 
             result.onSuccess { robot ->
                 updateRobotInfoInMap(token, robot)
@@ -347,9 +349,7 @@ class SharedViewModel(
         val robot = _robotsInfoMap.value?.get(safeToken)
 
         if (safeToken.isNotEmpty()) {
-            if (robot == null || robot.errorMessage != null) {
-                fetchRobotInfo(safeToken)  // safeToken is guaranteed to be non-null here
-            }
+            fetchRobotInfo(safeToken)
         }
         updateSelectedRobotInternal(robot)
     }
