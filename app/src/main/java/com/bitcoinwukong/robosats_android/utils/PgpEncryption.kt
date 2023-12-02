@@ -79,7 +79,10 @@ object PgpKeyGenerator {
         throw IllegalArgumentException("Unable to decrypt private key $encryptedPrivateKey")
     }
 
-    fun decodeEncryptedMessage(encryptedMessage: String): PGPEncryptedDataList {
+    fun getEncryptedData(
+        encryptedMessage: String,
+        pgpPrivateKey: PGPPrivateKey
+    ): PGPPublicKeyEncryptedData {
         val inputStream =
             PGPUtil.getDecoderStream(
                 ByteArrayInputStream(
@@ -87,16 +90,14 @@ object PgpKeyGenerator {
                 )
             )
         val pgpObjectFactory = PGPObjectFactory(inputStream, JcaKeyFingerprintCalculator())
-        return pgpObjectFactory.nextObject() as PGPEncryptedDataList
-    }
-
-    fun getEncryptedData(
-        encryptedMessage: String,
-        pgpPrivateKey: PGPPrivateKey
-    ): PGPPublicKeyEncryptedData {
-        for (pgpData in decodeEncryptedMessage(encryptedMessage)) {
-            if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
-                return pgpData
+        var pgpObject: Any?
+        while (pgpObjectFactory.nextObject().also { pgpObject = it } != null) {
+            if (pgpObject is PGPEncryptedDataList) {
+                for (pgpData in pgpObject as PGPEncryptedDataList) {
+                    if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
+                        return pgpData
+                    }
+                }
             }
         }
 
@@ -219,11 +220,11 @@ object PgpKeyGenerator {
         val signatureData = createSignatureData(message, signatureKey)
         bOut.write(signatureData)
 
-        // Encrypt for senderPublicKey
-        val encryptedData1 = encryptData(bOut.toByteArray(), senderPublicKey)
-
         // Encrypt for receiverPublicKey
-        val encryptedData2 = encryptData(bOut.toByteArray(), receiverPublicKey)
+        val encryptedData1 = encryptData(bOut.toByteArray(), receiverPublicKey)
+
+        // Encrypt for senderPublicKey
+        val encryptedData2 = encryptData(bOut.toByteArray(), senderPublicKey)
 
         // Combine encrypted data and create armored string
         return createArmoredEncryptedMessage(encryptedData1, encryptedData2)
