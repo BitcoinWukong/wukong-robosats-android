@@ -274,6 +274,7 @@ class SharedViewModel(
 
     private fun invalidateOrder(orderId: Int) {
         _ordersCache.remove(orderId)
+        _chatMessages.postValue(emptyList())
         if (_activeOrder.value?.id == orderId) {
             _activeOrder.postValue(null)
         }
