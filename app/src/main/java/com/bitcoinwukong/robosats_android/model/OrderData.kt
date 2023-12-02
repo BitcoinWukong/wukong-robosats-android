@@ -114,16 +114,18 @@ data class OrderData(
         return "#$id, $orderType $currency $formattedAmount, $paymentMethod, $formattedPrice, $formattedPremium"
     }
 
+    private fun formatDouble(value: Double): String {
+        // Format with two decimal places if there are significant decimal places
+        return if (value % 1.0 != 0.0)
+            String.format("%.2f", value)
+        else
+            String.format("%.0f", value)
+    }
+
     private fun formatAmount(amount: Double?, minAmount: Double?, maxAmount: Double?): String {
         return when {
-            amount != null -> String.format("%.0f", amount)
-            minAmount != null && maxAmount != null -> "${
-                String.format(
-                    "%.0f",
-                    minAmount
-                )
-            } ~ ${String.format("%.0f", maxAmount)}"
-
+            amount != null -> formatDouble(amount)
+            minAmount != null && maxAmount != null -> "${formatDouble(minAmount)} ~ ${formatDouble(maxAmount)}"
             else -> "N/A"
         }
     }
