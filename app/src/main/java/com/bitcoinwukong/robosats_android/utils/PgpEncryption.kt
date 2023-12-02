@@ -287,10 +287,10 @@ object PgpKeyGenerator {
         val plainFactory = PGPObjectFactory(clearData, JcaKeyFingerprintCalculator())
         var messageContent: String? = null
 
-        val pgpObjectsList = plainFactory.asSequence().toList()
-        for (pgpObject in pgpObjectsList) {
+        var pgpObject: Any?
+        while (plainFactory.nextObject().also { pgpObject = it } != null) {
             if (pgpObject is PGPLiteralData) {
-                val literalDataInputStream = pgpObject.inputStream
+                val literalDataInputStream = (pgpObject as PGPLiteralData).inputStream
                 messageContent = literalDataInputStream.bufferedReader().readText()
                 break
             }
