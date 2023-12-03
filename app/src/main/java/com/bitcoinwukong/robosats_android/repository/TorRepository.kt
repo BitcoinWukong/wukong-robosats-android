@@ -11,6 +11,7 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.network.ITorManager
+import com.bitcoinwukong.robosats_android.utils.ROBOSATS_DEVNODE
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_MAINNET
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_TESTNET
 import com.bitcoinwukong.robosats_android.utils.TOR_SOCKS_PORT
@@ -153,7 +154,7 @@ class TorRepository(val torManager: ITorManager) {
         testNet: Boolean = false,
         checkTorConnection: Boolean = true
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
-        val host = if (testNet) ROBOSATS_TESTNET else ROBOSATS_MAINNET
+        val host = ROBOSATS_DEVNODE
 
         try {
             var jsonObject: JSONObject? = null
@@ -483,7 +484,7 @@ class TorRepository(val torManager: ITorManager) {
             var resultOrders = listOf<OrderData>()
             val url = HttpUrl.Builder()
                 .scheme("http")
-                .host("robosats6tkf3eva7x2voqso3a5wcorsnw34jveyxfqi2fu7oyheasid.onion")
+                .host(ROBOSATS_DEVNODE)
                 .addPathSegment("api")
                 .addPathSegment("book")
                 .addQueryParameter("currency", "1")
