@@ -1,6 +1,5 @@
 package com.bitcoinwukong.robosats_android.utils
 
-import android.util.Log
 import com.bitcoinwukong.robosats_android.model.PGPPrivateKeyBundle
 import com.bitcoinwukong.robosats_android.model.PGPPublicKeyBundle
 import org.bouncycastle.bcpg.ArmoredOutputStream
@@ -14,7 +13,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openpgp.PGPEncryptedData
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator
 import org.bouncycastle.openpgp.PGPEncryptedDataList
-import org.bouncycastle.openpgp.PGPKeyPair
 import org.bouncycastle.openpgp.PGPKeyRingGenerator
 import org.bouncycastle.openpgp.PGPLiteralData
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator
