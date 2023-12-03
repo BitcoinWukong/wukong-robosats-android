@@ -21,6 +21,7 @@ import org.bouncycastle.openpgp.PGPObjectFactory
 import org.bouncycastle.openpgp.PGPPrivateKey
 import org.bouncycastle.openpgp.PGPPublicKey
 import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData
+import org.bouncycastle.openpgp.PGPPublicKeyRing
 import org.bouncycastle.openpgp.PGPPublicKeyRingCollection
 import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection
@@ -202,13 +203,19 @@ object PgpKeyGenerator {
         bOut.write(signatureData)
 
         // Encrypt for both receiverPublicKey and senderPublicKey
-        val encryptedData = encryptDataForMultipleKeys(bOut.toByteArray(), listOf(receiverPublicKey, senderPublicKey))
+        val encryptedData = encryptDataForMultipleKeys(
+            bOut.toByteArray(),
+            listOf(receiverPublicKey, senderPublicKey)
+        )
 
         // Create armored string
         return createArmoredEncryptedMessage(encryptedData)
     }
 
-    private fun encryptDataForMultipleKeys(data: ByteArray, publicKeys: List<PGPPublicKey>): ByteArray {
+    private fun encryptDataForMultipleKeys(
+        data: ByteArray,
+        publicKeys: List<PGPPublicKey>
+    ): ByteArray {
         val buffer = ByteArrayOutputStream()
         val encGen = PGPEncryptedDataGenerator(
             JcePGPDataEncryptorBuilder(PGPEncryptedData.CAST5)
@@ -309,17 +316,45 @@ object PgpKeyGenerator {
         keySize: Int = 2048
     ): Pair<String, String> {
         val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-        keyPairGenerator.initialize(keySize)
+        keyPairGenerator.initialize(keySize, SecureRandom())
 
-        val keyPair = keyPairGenerator.generateKeyPair()
-        val pgpKeyPair = JcaPGPKeyPair(algorithm, keyPair, Date())
-        val secretKeyRing = generateSecretKey(pgpKeyPair, identity, passphrase.toCharArray())
+        // Generate the primary key pair (used for signing)
+        val primaryPair = keyPairGenerator.generateKeyPair()
+        val pgpPrimaryPair = JcaPGPKeyPair(algorithm, primaryPair, Date())
 
-        val publicKey = exportPublicKey(secretKeyRing.publicKey)
+        // Generate the subkey pair (used for encryption)
+        val subKeyPair = keyPairGenerator.generateKeyPair()
+        val pgpSubKeyPair = JcaPGPKeyPair(algorithm, subKeyPair, Date())
+
+        // Key ring generator with primary key
+        val digestCalculator = JcaPGPDigestCalculatorProviderBuilder().build().get(PGPUtil.SHA1)
+
+        val keyRingGen = PGPKeyRingGenerator(
+            PGPSignature.POSITIVE_CERTIFICATION,
+            pgpPrimaryPair,
+            identity,
+            digestCalculator,
+            null,
+            null,
+            JcaPGPContentSignerBuilder(pgpPrimaryPair.publicKey.algorithm, PGPUtil.SHA1),
+            JcePBESecretKeyEncryptorBuilder(
+                PGPEncryptedData.CAST5,
+                digestCalculator
+            ).setProvider("BC").build(passphrase.toCharArray())
+        )
+
+        // Add the subkey to the key ring
+        keyRingGen.addSubKey(pgpSubKeyPair)
+
+        // Generate the key ring
+        val secretKeyRing = keyRingGen.generateSecretKeyRing()
+        val publicKeyRing = PGPPublicKeyRing(secretKeyRing.publicKeys.asSequence().toList())
+        val publicKey = exportPublicKey(publicKeyRing)
         val encryptedPrivateKey = exportEncryptedPrivateKey(secretKeyRing)
 
         return Pair(publicKey, encryptedPrivateKey)
     }
+
 
     fun decryptMessage(
         encryptedMessage: String,
@@ -342,37 +377,12 @@ object PgpKeyGenerator {
         return PGPPublicKeyBundle(keys[0], keys[1])
     }
 
-    private fun generateSecretKey(
-        keyPair: PGPKeyPair,
-        identity: String,
-        passphrase: CharArray
-    ): PGPSecretKeyRing {
-        val digestCalculator = JcaPGPDigestCalculatorProviderBuilder().build().get(PGPUtil.SHA1)
-
-        val keyRingGen = PGPKeyRingGenerator(
-            PGPSignature.POSITIVE_CERTIFICATION,
-            keyPair,
-            identity,
-            digestCalculator,
-            null,
-            null,
-            JcaPGPContentSignerBuilder(keyPair.publicKey.algorithm, PGPUtil.SHA256),
-            JcePBESecretKeyEncryptorBuilder(
-                PGPEncryptedData.CAST5,
-                digestCalculator
-            ).setProvider("BC").build(passphrase)
-        )
-
-        return keyRingGen.generateSecretKeyRing()
-    }
-
-    private fun exportPublicKey(publicKey: PGPPublicKey): String {
-        val out = ByteArrayOutputStream()
-        val armoredOut = ArmoredOutputStream(out)
-        armoredOut.setHeader("Version", null)
-        publicKey.encode(armoredOut)
-        armoredOut.close()
-        return out.toString("UTF-8")
+    private fun exportPublicKey(publicKeyRing: PGPPublicKeyRing): String {
+        val outputStream = ByteArrayOutputStream()
+        val armoredStream = ArmoredOutputStream(outputStream)
+        publicKeyRing.encode(armoredStream)
+        armoredStream.close()
+        return String(outputStream.toByteArray(), Charsets.UTF_8)
     }
 
     private fun exportEncryptedPrivateKey(secretKeyRing: PGPSecretKeyRing): String {
