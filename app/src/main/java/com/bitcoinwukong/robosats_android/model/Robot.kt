@@ -2,6 +2,9 @@ package com.bitcoinwukong.robosats_android.model
 
 import android.util.Log
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generateKeyPair
+import com.bitcoinwukong.robosats_android.utils.generateSecureToken
+import com.bitcoinwukong.robosats_android.utils.tokenSha256Hash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -9,11 +12,18 @@ import org.json.JSONObject
 
 fun errorRobot(token: String, errorMessage: String): Robot {
     return Robot(
-        token,
-        publicKey = "errorRobotWithInvalidPublicKey",
-        errorMessage = errorMessage
+        token, publicKey = "errorRobotWithInvalidPublicKey", errorMessage = errorMessage
     )
 }
+
+fun generateRobot(): Robot {
+    val token = generateSecureToken()
+    val token_hash = tokenSha256Hash(token)
+    val (publicKey, encryptedPrivateKey) = generateKeyPair(token_hash, token)
+
+    return Robot(token, publicKey, encryptedPrivateKey)
+}
+
 
 data class Robot(
     val token: String,
@@ -39,6 +49,7 @@ data class Robot(
             this.publicKeyBundle = PgpKeyManager.getPgpPublicKey(publicKey)
         }
     }
+
     companion object {
         fun fromTokenAndJson(token: String, jsonObject: JSONObject): Robot {
             val publicKey = jsonObject.getString("public_key")
@@ -81,15 +92,13 @@ data class Robot(
     ): MessageData {
         if (privateKeyBundle == null) {
             Log.d(
-                "Robot",
-                "Robot $token pgpPrivateKey is null, continue the private key decryption"
+                "Robot", "Robot $token pgpPrivateKey is null, continue the private key decryption"
             )
             privateKeyBundle = PgpKeyManager.waitForDecryption(encryptedPrivateKey!!)
         }
 
         messageData.message = PgpKeyGenerator.decryptMessage(
-            messageData.message.replace("\\", "\n"),
-            privateKeyBundle!!.encryptionKey
+            messageData.message.replace("\\", "\n"), privateKeyBundle!!.encryptionKey
         )
 
         return messageData

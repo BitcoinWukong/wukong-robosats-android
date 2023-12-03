@@ -30,8 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Currency
 import com.bitcoinwukong.robosats_android.model.MessageData
@@ -39,6 +42,8 @@ import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.model.generateRobot
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generateKeyPair
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,33 +158,45 @@ fun ChatMessageBubble(messageData: MessageData, isFromSender: Boolean = false) {
             color = bubbleColor,
             shadowElevation = 1.dp
         ) {
-            Text(
-                text = messageData.message,
-                color = textColor,
-                modifier = Modifier.padding(all = 8.dp)
-            )
+            Column(modifier = Modifier.padding(all = 8.dp)) {
+                Text(
+                    text = messageData.nick, // Sender's nickname
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = messageData.time, // Time of the message
+                    color = textColor,
+                    fontSize = 12.sp,
+                    fontStyle = FontStyle.Italic
+                )
+                Text(
+                    text = messageData.message, // Message text
+                    color = textColor
+                )
+            }
         }
     }
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//fun ChatMessagesPreview_Seller() {
-//    val mockViewModel = MockSharedViewModel(chatMessages = listOf("hey", "hi, what's your email"))
-//    val mockOrder = OrderData(
-//        id = 123, // Mock order ID
-//        type = OrderType.BUY, // Example order type
-//        currency = Currency.USD, // Example currency
-//        status = OrderStatus.FIAT_SENT_IN_CHATROOM, // Example order status
-//        isSeller = true,
-//    )
-//    val robot1 = Robot(
-//        "token1",
-//        nickname = "robot1",
-//        publicKey = "pubkey123456",
-//    )
-//
-//    Box(modifier = Modifier.size(350.dp)) {
-//        ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
-//    }
-//}
+
+@Preview(showBackground = true)
+@Composable
+fun ChatMessagesPreview_Seller() {
+    val mockOrder = OrderData(
+        id = 123, // Mock order ID
+        type = OrderType.BUY, // Example order type
+        currency = Currency.USD, // Example currency
+        status = OrderStatus.FIAT_SENT_IN_CHATROOM, // Example order status
+        isSeller = true,
+    )
+
+    val robot1 = generateRobot().copy(nickname = "robot1")
+    val mockViewModel = MockSharedViewModel(chatMessages = listOf(
+        MessageData(0, "19:20", "", "robot1", "hey"),
+        MessageData(0, "19:20", "", "robot2", "hi, what's your email")))
+
+    Box(modifier = Modifier.size(350.dp)) {
+        ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
+    }
+}
