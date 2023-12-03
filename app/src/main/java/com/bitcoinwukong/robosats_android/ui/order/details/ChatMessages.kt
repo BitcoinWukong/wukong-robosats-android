@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
@@ -23,6 +24,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -55,18 +57,27 @@ fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
     val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
     var currentMessage by remember { mutableStateOf("") }
     var showConfirmationDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberLazyListState()
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         // Display chat messages
         LazyColumn(
+            state = scrollState,
             modifier = Modifier.weight(1f)
         ) {
             items(chatMessages) { message ->
                 // Check if the message is from the sender (robot)
                 val isFromSender = message.nick == robot.nickname
                 ChatMessageBubble(message, isFromSender)
+            }
+        }
+
+        // Auto-scroll to the latest message when the list changes
+        LaunchedEffect(chatMessages) {
+            if (chatMessages.isNotEmpty()) {
+                scrollState.animateScrollToItem(chatMessages.size - 1)
             }
         }
 

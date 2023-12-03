@@ -97,7 +97,6 @@ object PgpKeyGenerator {
             if (pgpObject is PGPEncryptedDataList) {
                 for (pgpData in pgpObject as PGPEncryptedDataList) {
                     if (pgpData is PGPPublicKeyEncryptedData && pgpData.keyID == pgpPrivateKey.keyID) {
-                        Log.d("PGPEncryption", "pgpData.keyID: ${pgpData.keyID}")
                         return pgpData
                     }
                 }
@@ -307,7 +306,6 @@ object PgpKeyGenerator {
     }
 
     fun decryptMessage(encryptedMessage: String, pgpPrivateKey: PGPPrivateKey): String {
-        Log.d("PGPEncryption", "trying to decrypt with key ${pgpPrivateKey.keyID} for message: $encryptedMessage")
         val encryptedData = getEncryptedData(encryptedMessage, pgpPrivateKey)
         return decryptMessageContent(encryptedData, pgpPrivateKey)
     }
