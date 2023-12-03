@@ -61,7 +61,9 @@ fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
             modifier = Modifier.weight(1f)
         ) {
             items(chatMessages) { message ->
-                ChatMessageBubble(message)
+                // Check if the message is from the sender (robot)
+                val isFromSender = message.nick == robot.nickname
+                ChatMessageBubble(message, isFromSender)
             }
         }
 
