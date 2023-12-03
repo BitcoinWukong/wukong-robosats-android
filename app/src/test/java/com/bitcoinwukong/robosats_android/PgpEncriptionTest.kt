@@ -1,5 +1,6 @@
 package com.bitcoinwukong.robosats_android
 
+import com.bitcoinwukong.robosats_android.model.PgpKeyManager
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.createPGPEncryptedDataByteArray
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.decryptPrivateKeys
@@ -295,6 +296,9 @@ class PgpKeyGeneratorTest {
 
         assertNotNull("Public key should not be null", publicKey)
         assertNotNull("Encrypted private key should not be null", encryptedPrivateKey)
+
+        val publicKeyBundle = PgpKeyManager.getPgpPublicKey(publicKey)
+        assertNotNull(publicKeyBundle)
     }
 
     @Test

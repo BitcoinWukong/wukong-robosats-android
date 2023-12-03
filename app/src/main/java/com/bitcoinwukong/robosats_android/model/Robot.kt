@@ -2,6 +2,9 @@ package com.bitcoinwukong.robosats_android.model
 
 import android.util.Log
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generateKeyPair
+import com.bitcoinwukong.robosats_android.utils.generateSecureToken
+import com.bitcoinwukong.robosats_android.utils.tokenSha256Hash
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -9,11 +12,18 @@ import org.json.JSONObject
 
 fun errorRobot(token: String, errorMessage: String): Robot {
     return Robot(
-        token,
-        publicKey = "errorRobotWithInvalidPublicKey",
-        errorMessage = errorMessage
+        token, publicKey = "errorRobotWithInvalidPublicKey", errorMessage = errorMessage
     )
 }
+
+fun generateRobot(): Robot {
+    val token = generateSecureToken()
+    val token_hash = tokenSha256Hash(token)
+    val (publicKey, encryptedPrivateKey) = generateKeyPair(token_hash, token)
+
+    return Robot(token, publicKey, encryptedPrivateKey)
+}
+
 
 data class Robot(
     val token: String,
@@ -39,6 +49,7 @@ data class Robot(
             this.publicKeyBundle = PgpKeyManager.getPgpPublicKey(publicKey)
         }
     }
+
     companion object {
         fun fromTokenAndJson(token: String, jsonObject: JSONObject): Robot {
             val publicKey = jsonObject.getString("public_key")
@@ -77,27 +88,20 @@ data class Robot(
     }
 
     suspend fun decryptMessage(
-        encryptedMessage: String,
-    ): String {
+        messageData: MessageData,
+    ): MessageData {
         if (privateKeyBundle == null) {
             Log.d(
-                "Robot",
-                "Robot $token pgpPrivateKey is null, continue the private key decryption"
+                "Robot", "Robot $token pgpPrivateKey is null, continue the private key decryption"
             )
             privateKeyBundle = PgpKeyManager.waitForDecryption(encryptedPrivateKey!!)
         }
 
-        return if (privateKeyBundle != null) {
-            Log.d("Robot", "Robot $token pgpPrivateKey decrypted, start message decryption")
-            // Decrypt the message
-            PgpKeyGenerator.decryptMessage(
-                encryptedMessage.replace("\\", "\n"),
-                privateKeyBundle!!.encryptionKey
-            )
-        } else {
-            // Return empty string or an error message if decryption is not possible
-            "Decryption Error: Private key not available."
-        }
+        messageData.message = PgpKeyGenerator.decryptMessage(
+            messageData.encryptedMessage.replace("\\", "\n"), privateKeyBundle!!.encryptionKey
+        )
+
+        return messageData
     }
 
     suspend fun encryptMessage(

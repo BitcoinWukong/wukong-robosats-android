@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.model.errorRobot
@@ -57,9 +58,9 @@ class SharedViewModel(
     private var _activeOrder = MutableLiveData<OrderData?>(null)
     override val activeOrder: LiveData<OrderData?> get() = _activeOrder
 
-    private var _chatMessages = MutableLiveData<List<String>>(emptyList())
+    private var _chatMessages = MutableLiveData<List<MessageData>>(emptyList())
 
-    override val chatMessages: LiveData<List<String>> get() = _chatMessages
+    override val chatMessages: LiveData<List<MessageData>> get() = _chatMessages
 
     private val _orderIdPeerPublicKeyMap: MutableMap<Int, String> = mutableMapOf()
 
@@ -116,9 +117,11 @@ class SharedViewModel(
     }
 
     private fun fetchRobotInfo(token: String) {
-        Log.d(TAG, "fetching robot info for $token")
+        val robot = _robotsInfoMap.value?.get(token)
+        Log.d(TAG, "fetching robot info for ${token}, ${robot?.publicKey}, ${robot?.encryptedPrivateKey}")
+
         viewModelScope.launch {
-            val result = torRepository.getRobotInfo(token)
+            val result = torRepository.getRobotInfo(token, robot?.publicKey, robot?.encryptedPrivateKey)
 
             result.onSuccess { robot ->
                 updateRobotInfoInMap(token, robot)
@@ -274,6 +277,7 @@ class SharedViewModel(
 
     private fun invalidateOrder(orderId: Int) {
         _ordersCache.remove(orderId)
+        _chatMessages.postValue(emptyList())
         if (_activeOrder.value?.id == orderId) {
             _activeOrder.postValue(null)
         }
@@ -297,17 +301,17 @@ class SharedViewModel(
 
                 _orderIdPeerPublicKeyMap[orderId] = chatMessagesResponse.peerPublicKey
 
-                val messages = chatMessagesResponse.messages
+                val messages = chatMessagesResponse.messageData
                 // Sort messages by index incrementally
                 val sortedMessages = messages.sortedBy { it.index }
                 val decryptedMessagesDeferred = sortedMessages.map { message ->
                     async(Dispatchers.IO) {
-                        robot.decryptMessage(message.message).also { decryptedMessage ->
+                        robot.decryptMessage(message).also { decryptedMessage ->
                             withContext(Dispatchers.Main) {
-                                torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage")
+                                torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: ${decryptedMessage.message}")
                                 Log.d(
                                     TAG,
-                                    "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
+                                    "Message: ${message.time}, ${message.nick}, ${message.index}: ${decryptedMessage.message}"
                                 )
                             }
                         }
@@ -346,9 +350,7 @@ class SharedViewModel(
         val robot = _robotsInfoMap.value?.get(safeToken)
 
         if (safeToken.isNotEmpty()) {
-            if (robot == null || robot.errorMessage != null) {
-                fetchRobotInfo(safeToken)  // safeToken is guaranteed to be non-null here
-            }
+            fetchRobotInfo(safeToken)
         }
         updateSelectedRobotInternal(robot)
     }

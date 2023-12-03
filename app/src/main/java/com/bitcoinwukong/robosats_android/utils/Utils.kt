@@ -3,6 +3,8 @@ package com.bitcoinwukong.robosats_android.utils
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
@@ -10,10 +12,11 @@ fun parseDateTime(dateTimeString: String?): LocalDateTime? {
     val dateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
 
     return try {
-        if (dateTimeString.isNullOrBlank()) null else LocalDateTime.parse(
-            dateTimeString,
-            dateTimeFormatter
-        )
+        if (dateTimeString.isNullOrBlank()) null
+        else {
+            val utcDateTime = ZonedDateTime.parse(dateTimeString, dateTimeFormatter)
+            utcDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+        }
     } catch (e: DateTimeParseException) {
         null
     }

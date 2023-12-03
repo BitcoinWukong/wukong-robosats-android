@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
@@ -23,6 +24,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -30,15 +32,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Currency
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.model.generateRobot
+import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generateKeyPair
+import com.bitcoinwukong.robosats_android.utils.parseDateTime
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,16 +57,27 @@ fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
     val chatMessages by viewModel.chatMessages.observeAsState(emptyList())
     var currentMessage by remember { mutableStateOf("") }
     var showConfirmationDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberLazyListState()
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         // Display chat messages
         LazyColumn(
+            state = scrollState,
             modifier = Modifier.weight(1f)
         ) {
             items(chatMessages) { message ->
-                ChatMessageBubble(message)
+                // Check if the message is from the sender (robot)
+                val isFromSender = message.nick == robot.nickname
+                ChatMessageBubble(message, isFromSender)
+            }
+        }
+
+        // Auto-scroll to the latest message when the list changes
+        LaunchedEffect(chatMessages) {
+            if (chatMessages.isNotEmpty()) {
+                scrollState.animateScrollToItem(chatMessages.size - 1)
             }
         }
 
@@ -133,13 +155,16 @@ fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
 }
 
 @Composable
-fun ChatMessageBubble(message: String, isFromSender: Boolean = false) {
+fun ChatMessageBubble(messageData: MessageData, isFromSender: Boolean = false) {
     // Define message bubble alignment
     val bubbleAlignment = if (isFromSender) Alignment.TopEnd else Alignment.TopStart
     val bubbleColor =
         if (isFromSender) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     val textColor =
         if (isFromSender) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val formattedTime = parseDateTime(messageData.time)?.format(
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    ) ?: "Unknown time"
 
     Box(
         contentAlignment = bubbleAlignment,
@@ -152,19 +177,31 @@ fun ChatMessageBubble(message: String, isFromSender: Boolean = false) {
             color = bubbleColor,
             shadowElevation = 1.dp
         ) {
-            Text(
-                text = message,
-                color = textColor,
-                modifier = Modifier.padding(all = 8.dp)
-            )
+            Column(modifier = Modifier.padding(all = 8.dp)) {
+                Text(
+                    text = messageData.nick, // Sender's nickname
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = formattedTime, // Time of the message
+                    color = textColor,
+                    fontSize = 12.sp,
+                    fontStyle = FontStyle.Italic
+                )
+                Text(
+                    text = messageData.message, // Message text
+                    color = textColor
+                )
+            }
         }
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
 fun ChatMessagesPreview_Seller() {
-    val mockViewModel = MockSharedViewModel(chatMessages = listOf("hey", "hi, what's your email"))
     val mockOrder = OrderData(
         id = 123, // Mock order ID
         type = OrderType.BUY, // Example order type
@@ -172,11 +209,11 @@ fun ChatMessagesPreview_Seller() {
         status = OrderStatus.FIAT_SENT_IN_CHATROOM, // Example order status
         isSeller = true,
     )
-    val robot1 = Robot(
-        "token1",
-        nickname = "robot1",
-        publicKey = "pubkey123456",
-    )
+
+    val robot1 = generateRobot().copy(nickname = "robot1")
+    val mockViewModel = MockSharedViewModel(chatMessages = listOf(
+        MessageData(0, "2023-12-03T02:57:02.788041Z", "", "robot1", "hey"),
+        MessageData(0, "2023-12-03T02:59:02.796032Z", "", "robot2", "hi, what's your email")))
 
     Box(modifier = Modifier.size(350.dp)) {
         ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
