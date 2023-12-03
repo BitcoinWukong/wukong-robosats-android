@@ -77,8 +77,8 @@ data class Robot(
     }
 
     suspend fun decryptMessage(
-        encryptedMessage: String,
-    ): String {
+        messageData: MessageData,
+    ): MessageData {
         if (privateKeyBundle == null) {
             Log.d(
                 "Robot",
@@ -87,17 +87,12 @@ data class Robot(
             privateKeyBundle = PgpKeyManager.waitForDecryption(encryptedPrivateKey!!)
         }
 
-        return if (privateKeyBundle != null) {
-            Log.d("Robot", "Robot $token pgpPrivateKey decrypted, start message decryption")
-            // Decrypt the message
-            PgpKeyGenerator.decryptMessage(
-                encryptedMessage.replace("\\", "\n"),
-                privateKeyBundle!!.encryptionKey
-            )
-        } else {
-            // Return empty string or an error message if decryption is not possible
-            "Decryption Error: Private key not available."
-        }
+        messageData.message = PgpKeyGenerator.decryptMessage(
+            messageData.message.replace("\\", "\n"),
+            privateKeyBundle!!.encryptionKey
+        )
+
+        return messageData
     }
 
     suspend fun encryptMessage(

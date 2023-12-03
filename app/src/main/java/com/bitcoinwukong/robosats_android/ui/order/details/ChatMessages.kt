@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
 import com.bitcoinwukong.robosats_android.model.Currency
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderStatus
 import com.bitcoinwukong.robosats_android.model.OrderType
@@ -133,7 +134,7 @@ fun ChatMessages(viewModel: ISharedViewModel, robot: Robot, order: OrderData) {
 }
 
 @Composable
-fun ChatMessageBubble(message: String, isFromSender: Boolean = false) {
+fun ChatMessageBubble(messageData: MessageData, isFromSender: Boolean = false) {
     // Define message bubble alignment
     val bubbleAlignment = if (isFromSender) Alignment.TopEnd else Alignment.TopStart
     val bubbleColor =
@@ -153,7 +154,7 @@ fun ChatMessageBubble(message: String, isFromSender: Boolean = false) {
             shadowElevation = 1.dp
         ) {
             Text(
-                text = message,
+                text = messageData.message,
                 color = textColor,
                 modifier = Modifier.padding(all = 8.dp)
             )
@@ -161,24 +162,24 @@ fun ChatMessageBubble(message: String, isFromSender: Boolean = false) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun ChatMessagesPreview_Seller() {
-    val mockViewModel = MockSharedViewModel(chatMessages = listOf("hey", "hi, what's your email"))
-    val mockOrder = OrderData(
-        id = 123, // Mock order ID
-        type = OrderType.BUY, // Example order type
-        currency = Currency.USD, // Example currency
-        status = OrderStatus.FIAT_SENT_IN_CHATROOM, // Example order status
-        isSeller = true,
-    )
-    val robot1 = Robot(
-        "token1",
-        nickname = "robot1",
-        publicKey = "pubkey123456",
-    )
-
-    Box(modifier = Modifier.size(350.dp)) {
-        ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun ChatMessagesPreview_Seller() {
+//    val mockViewModel = MockSharedViewModel(chatMessages = listOf("hey", "hi, what's your email"))
+//    val mockOrder = OrderData(
+//        id = 123, // Mock order ID
+//        type = OrderType.BUY, // Example order type
+//        currency = Currency.USD, // Example currency
+//        status = OrderStatus.FIAT_SENT_IN_CHATROOM, // Example order status
+//        isSeller = true,
+//    )
+//    val robot1 = Robot(
+//        "token1",
+//        nickname = "robot1",
+//        publicKey = "pubkey123456",
+//    )
+//
+//    Box(modifier = Modifier.size(350.dp)) {
+//        ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
+//    }
+//}

@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.model.errorRobot
@@ -57,9 +58,9 @@ class SharedViewModel(
     private var _activeOrder = MutableLiveData<OrderData?>(null)
     override val activeOrder: LiveData<OrderData?> get() = _activeOrder
 
-    private var _chatMessages = MutableLiveData<List<String>>(emptyList())
+    private var _chatMessages = MutableLiveData<List<MessageData>>(emptyList())
 
-    override val chatMessages: LiveData<List<String>> get() = _chatMessages
+    override val chatMessages: LiveData<List<MessageData>> get() = _chatMessages
 
     private val _orderIdPeerPublicKeyMap: MutableMap<Int, String> = mutableMapOf()
 
@@ -300,17 +301,17 @@ class SharedViewModel(
 
                 _orderIdPeerPublicKeyMap[orderId] = chatMessagesResponse.peerPublicKey
 
-                val messages = chatMessagesResponse.messages
+                val messages = chatMessagesResponse.messageData
                 // Sort messages by index incrementally
                 val sortedMessages = messages.sortedBy { it.index }
                 val decryptedMessagesDeferred = sortedMessages.map { message ->
                     async(Dispatchers.IO) {
-                        robot.decryptMessage(message.message).also { decryptedMessage ->
+                        robot.decryptMessage(message).also { decryptedMessage ->
                             withContext(Dispatchers.Main) {
-                                torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage")
+                                torRepository.torManager.addLine("Message: ${message.time}, ${message.nick}, ${message.index}: ${decryptedMessage.message}")
                                 Log.d(
                                     TAG,
-                                    "Message: ${message.time}, ${message.nick}, ${message.index}: $decryptedMessage"
+                                    "Message: ${message.time}, ${message.nick}, ${message.index}: ${decryptedMessage.message}"
                                 )
                             }
                         }

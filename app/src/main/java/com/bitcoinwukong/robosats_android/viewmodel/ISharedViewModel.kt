@@ -1,6 +1,7 @@
 package com.bitcoinwukong.robosats_android.viewmodel
 
 import androidx.lifecycle.LiveData
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import java.time.LocalDateTime
@@ -22,7 +23,7 @@ interface ISharedViewModel {
 
     val activeOrder: LiveData<OrderData?>
 
-    val chatMessages: LiveData<List<String>>
+    val chatMessages: LiveData<List<MessageData>>
 
     fun restartTor()
     fun fetchOrders()

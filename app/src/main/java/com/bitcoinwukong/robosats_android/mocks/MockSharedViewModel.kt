@@ -3,6 +3,7 @@ package com.bitcoinwukong.robosats_android.mocks
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.viewmodel.CreateOrderParams
@@ -18,7 +19,7 @@ class MockSharedViewModel(
     selectedRobot: Robot? = null,
     activeOrder: OrderData? = null,
     isTorReady: Boolean = true,
-    chatMessages: List<String> = emptyList(),
+    chatMessages: List<MessageData> = emptyList(),
 ) : ISharedViewModel {
     override val orders = MutableLiveData(ordersList)
 
@@ -28,7 +29,7 @@ class MockSharedViewModel(
         MutableLiveData(selectedToken ?: selectedRobot?.token ?: "")
     override val selectedRobot: LiveData<Robot?> = MutableLiveData(selectedRobot)
     override val activeOrder: LiveData<OrderData?> = MutableLiveData(activeOrder)
-    override val chatMessages: LiveData<List<String>> = MutableLiveData(chatMessages)
+    override val chatMessages: LiveData<List<MessageData>> = MutableLiveData(chatMessages)
     override val torManagerEvents: LiveData<String> = MutableLiveData("")
     override val lastUpdated: LiveData<LocalDateTime> = MutableLiveData(LocalDateTime.now())
     override val isUpdating: LiveData<Boolean> = MutableLiveData(isUpdating)

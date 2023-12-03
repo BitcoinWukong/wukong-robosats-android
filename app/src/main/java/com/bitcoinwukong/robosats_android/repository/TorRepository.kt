@@ -5,7 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.bitcoinwukong.robosats_android.model.ChatMessagesResponse
 import com.bitcoinwukong.robosats_android.model.Currency
-import com.bitcoinwukong.robosats_android.model.Message
+import com.bitcoinwukong.robosats_android.model.MessageData
 import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
@@ -281,24 +281,24 @@ class TorRepository(val torManager: ITorManager) {
                 val peerConnected = jsonObject.getBoolean("peer_connected")
                 val peerPublicKey = jsonObject.getString("peer_pubkey")
                 val messagesJsonArray = jsonObject.optJSONArray("messages")
-                val messages = mutableListOf<Message>()
+                val messageDataList = mutableListOf<MessageData>()
 
                 if (messagesJsonArray != null) {
                     for (i in 0 until messagesJsonArray.length()) {
                         val messageJsonObject = messagesJsonArray.optJSONObject(i)
                         messageJsonObject?.let {
-                            val message = Message(
+                            val messageData = MessageData(
                                 index = it.optInt("index"),
                                 time = it.optString("time"),
-                                message = it.optString("message"),
+                                encryptedMessage = it.optString("message"),
                                 nick = it.optString("nick")
                             )
-                            messages.add(message)
+                            messageDataList.add(messageData)
                         }
                     }
                 }
 
-                Result.success(ChatMessagesResponse(messages, peerConnected, peerPublicKey, offset))
+                Result.success(ChatMessagesResponse(messageDataList, peerConnected, peerPublicKey, offset))
             },
             onFailure = { e ->
                 Result.failure(e)
