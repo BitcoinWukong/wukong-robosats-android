@@ -44,7 +44,10 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.model.generateRobot
 import com.bitcoinwukong.robosats_android.utils.PgpKeyGenerator.generateKeyPair
+import com.bitcoinwukong.robosats_android.utils.parseDateTime
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,6 +151,9 @@ fun ChatMessageBubble(messageData: MessageData, isFromSender: Boolean = false) {
         if (isFromSender) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     val textColor =
         if (isFromSender) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val formattedTime = parseDateTime(messageData.time)?.format(
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    ) ?: "Unknown time"
 
     Box(
         contentAlignment = bubbleAlignment,
@@ -167,7 +173,7 @@ fun ChatMessageBubble(messageData: MessageData, isFromSender: Boolean = false) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = messageData.time, // Time of the message
+                    text = formattedTime, // Time of the message
                     color = textColor,
                     fontSize = 12.sp,
                     fontStyle = FontStyle.Italic
@@ -195,8 +201,8 @@ fun ChatMessagesPreview_Seller() {
 
     val robot1 = generateRobot().copy(nickname = "robot1")
     val mockViewModel = MockSharedViewModel(chatMessages = listOf(
-        MessageData(0, "19:20", "", "robot1", "hey"),
-        MessageData(0, "19:20", "", "robot2", "hi, what's your email")))
+        MessageData(0, "2023-12-03T02:57:02.788041Z", "", "robot1", "hey"),
+        MessageData(0, "2023-12-03T02:59:02.796032Z", "", "robot2", "hi, what's your email")))
 
     Box(modifier = Modifier.size(350.dp)) {
         ChatMessages(viewModel = mockViewModel, robot1, order = mockOrder)
