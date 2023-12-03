@@ -98,7 +98,7 @@ data class Robot(
         }
 
         messageData.message = PgpKeyGenerator.decryptMessage(
-            messageData.message.replace("\\", "\n"), privateKeyBundle!!.encryptionKey
+            messageData.encryptedMessage.replace("\\", "\n"), privateKeyBundle!!.encryptionKey
         )
 
         return messageData
