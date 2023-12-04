@@ -1,5 +1,6 @@
 package com.bitcoinwukong.robosats_android.ui
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -64,8 +66,8 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val tabTitles = listOf("Sell", "Buy")
 
     var selectedOrder: OrderData? by remember { mutableStateOf(null) }
-    var selectedCurrency by remember { mutableStateOf(Currency.ALL) } // Default to ALL
-
+    val context = LocalContext.current
+    var selectedCurrency by remember { mutableStateOf(getSavedSelectedCurrency(context)) }
     val activeCurrencies = getActiveCurrencies(orders)
 
     Column(
@@ -80,6 +82,7 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
             selectedItem = selectedCurrency,
             onItemSelected = {
                 selectedCurrency = it
+                saveSelectedCurrency(context, it) // Save the selection
             }
         )
 
@@ -235,6 +238,24 @@ fun OrderRow(orderData: OrderData, onClick: () -> Unit) {
         )
     }
 }
+
+fun getSavedSelectedCurrency(context: Context): Currency {
+    val sharedPreferences =
+        context.getSharedPreferences("RobosatsPreferences", Context.MODE_PRIVATE)
+    val currencyName =
+        sharedPreferences.getString("selectedCurrency", Currency.ALL.name) ?: Currency.ALL.name
+    return Currency.valueOf(currencyName)
+}
+
+fun saveSelectedCurrency(context: Context, selectedCurrency: Currency) {
+    val sharedPreferences =
+        context.getSharedPreferences("RobosatsPreferences", Context.MODE_PRIVATE)
+    with(sharedPreferences.edit()) {
+        putString("selectedCurrency", selectedCurrency.name)
+        apply()
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
