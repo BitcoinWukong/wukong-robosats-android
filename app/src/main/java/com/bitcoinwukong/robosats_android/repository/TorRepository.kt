@@ -142,7 +142,7 @@ class TorRepository(val torManager: ITorManager) {
         onFailure("Failed after $maxRetries attempts")
     }
 
-    private suspend fun makeGeneralRequest(
+    private suspend fun <T> makeGeneralRequest(
         api: String,
         token: String? = null,
         pubKey: String? = null,
@@ -151,12 +151,13 @@ class TorRepository(val torManager: ITorManager) {
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
         testNet: Boolean = false,
-        checkTorConnection: Boolean = true
-    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        checkTorConnection: Boolean = true,
+        parseResponse: (String) -> T
+    ): Result<T> = withContext(Dispatchers.IO) {
         val host = if (testNet) ROBOSATS_TESTNET else ROBOSATS_MAINNET
 
         try {
-            var jsonObject: JSONObject? = null
+            var result: T? = null
 
             // Build the URL
             val urlBuilder = HttpUrl.Builder()
@@ -209,7 +210,7 @@ class TorRepository(val torManager: ITorManager) {
                 method = method,
                 onSuccess = { responseData ->
                     Log.d(TAG, "makeGeneralRequest response received: $responseData")
-                    jsonObject = JSONObject(responseData)
+                    result = parseResponse(responseData)
                 },
                 onFailure = { errorMessage ->
                     Log.e(TAG, "Error in makeGeneralRequest: $errorMessage")
@@ -217,7 +218,7 @@ class TorRepository(val torManager: ITorManager) {
                 },
                 checkTorConnection = checkTorConnection
             )
-            Result.success(jsonObject ?: throw IllegalStateException("No response data"))
+            Result.success(result ?: throw IllegalStateException("No response data"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -228,7 +229,9 @@ class TorRepository(val torManager: ITorManager) {
             makeGeneralRequest(
                 api = "info",
                 checkTorConnection = checkTorConnection
-            )
+            ) {
+                JSONObject(it)
+            }
         }
 
     suspend fun getRobotInfo(
@@ -242,7 +245,9 @@ class TorRepository(val torManager: ITorManager) {
             token = token,
             pubKey = publicKey,
             encPrivKey = encPrivKey
-        ).fold(
+        ) {
+            JSONObject(it)
+        }.fold(
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
                 Log.d(
@@ -275,7 +280,9 @@ class TorRepository(val torManager: ITorManager) {
             pubKey = robot.publicKey,
             encPrivKey = robot.encryptedPrivateKey,
             queryParams = queryParams,
-        ).fold(
+        ) {
+            JSONObject(it)
+        }.fold(
             onSuccess = { jsonObject ->
                 val offset = jsonObject.optInt("offset", -1).takeIf { it >= 0 }
                 val peerConnected = jsonObject.getBoolean("peer_connected")
@@ -298,7 +305,14 @@ class TorRepository(val torManager: ITorManager) {
                     }
                 }
 
-                Result.success(ChatMessagesResponse(messageDataList, peerConnected, peerPublicKey, offset))
+                Result.success(
+                    ChatMessagesResponse(
+                        messageDataList,
+                        peerConnected,
+                        peerPublicKey,
+                        offset
+                    )
+                )
             },
             onFailure = { e ->
                 Result.failure(e)
@@ -323,7 +337,9 @@ class TorRepository(val torManager: ITorManager) {
             token = robot.token,
             formBodyParams = formBodyParams,
             method = "POST"
-        )
+        ) {
+            JSONObject(it)
+        }
     }
 
     suspend fun makeOrder(
@@ -378,7 +394,9 @@ class TorRepository(val torManager: ITorManager) {
             token = token,
             formBodyParams = formBodyParams,
             method = "POST"
-        )
+        ) {
+            JSONObject(it)
+        }
     }
 
     suspend fun getOrderDetails(
@@ -390,7 +408,9 @@ class TorRepository(val torManager: ITorManager) {
             api = "order",
             token = token,
             queryParams = mapOf("order_id" to orderId.toString()),
-        ).fold(
+        ) {
+            JSONObject(it)
+        }.fold(
             onSuccess = { jsonObject ->
                 Result.success(OrderData.fromJson(jsonObject))
             },
@@ -466,62 +486,56 @@ class TorRepository(val torManager: ITorManager) {
                 queryParams = mapOf("order_id" to orderId.toString()),
                 formBodyParams = formBodyParams,
                 method = "POST"
-            )
+            ) {
+                JSONObject(it)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun listOrders(): Result<List<OrderData>> = withContext(Dispatchers.IO) {
+    suspend fun listOrders(
+        currency: Int = 0,
+    ): Result<List<OrderData>> = withContext(Dispatchers.IO) {
         if (isCurrentlyUpdating.getAndSet(true)) {
             Log.d(TAG, "Update already in progress. Fetch aborted.")
             return@withContext Result.failure(IllegalStateException("Update in progress"))
         }
         _isUpdating.postValue(true)
 
-        try {
-            var resultOrders = listOf<OrderData>()
-            val url = HttpUrl.Builder()
-                .scheme("http")
-                .host("robosats6tkf3eva7x2voqso3a5wcorsnw34jveyxfqi2fu7oyheasid.onion")
-                .addPathSegment("api")
-                .addPathSegment("book")
-                .addQueryParameter("currency", "1")
-                .addQueryParameter("type", "2")
-                .build()
-            Log.d("Network", "listing orders....")
-            makeApiRequest(
-                url = url,
-                onSuccess = { responseData ->
-                    val jsonArray = JSONArray(responseData)
-                    val buyOrders = mutableListOf<OrderData>()
-                    val sellOrders = mutableListOf<OrderData>()
+        val queryParams = mapOf(
+            "currency" to currency.toString(),
+            "type" to "2", // Both sell and buy
+        )
+        makeGeneralRequest(
+            api = "book",
+            queryParams = queryParams,
+        ) {
+            JSONArray(it)
+        }.fold(
+            onSuccess = { jsonArray ->
+                val buyOrders = mutableListOf<OrderData>()
+                val sellOrders = mutableListOf<OrderData>()
 
-                    for (i in 0 until jsonArray.length()) {
-                        val orderJson = jsonArray.getJSONObject(i)
-                        val orderData = OrderData.fromJson(orderJson)
-                        if (orderData.type == OrderType.BUY) buyOrders.add(orderData) else sellOrders.add(
-                            orderData
-                        )
-                    }
-
-                    // Sorting by premium in descending order
-                    val comparator = compareByDescending<OrderData> { it.premium }
-                    buyOrders.sortWith(comparator)
-                    sellOrders.sortWith(comparator)
-
-                    resultOrders = buyOrders + sellOrders
-                },
-                onFailure = { errorMessage ->
-                    throw IOException(errorMessage)
+                for (i in 0 until jsonArray.length()) {
+                    val orderJson = jsonArray.getJSONObject(i)
+                    val orderData = OrderData.fromJson(orderJson)
+                    if (orderData.type == OrderType.BUY) buyOrders.add(orderData) else sellOrders.add(
+                        orderData
+                    )
                 }
-            )
-            Result.success(resultOrders)
-        } catch (e: Exception) {
-            Result.failure(e)
-        } finally {
-            // Call the actual API to fetch orders
-            // After fetching orders:
+
+                // Sorting by premium in descending order
+                buyOrders.sortWith(compareByDescending { it.premium })
+                sellOrders.sortWith(compareBy { it.premium })
+
+                val resultOrders = buyOrders + sellOrders
+                Result.success(resultOrders)
+            },
+            onFailure = { errorMessage ->
+                Result.failure(IOException(errorMessage))
+            }
+        ).also {
             isCurrentlyUpdating.set(false)
             _isUpdating.postValue(false)
         }
