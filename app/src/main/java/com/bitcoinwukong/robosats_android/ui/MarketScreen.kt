@@ -46,6 +46,10 @@ import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+fun getActiveCurrencies(orders: List<OrderData>): List<Currency> {
+    return orders.map { it.currency }.distinct()
+}
+
 @Composable
 fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val orders by viewModel.orders.observeAsState(emptyList())
@@ -62,6 +66,8 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     var selectedOrder: OrderData? by remember { mutableStateOf(null) }
     var selectedCurrency by remember { mutableStateOf(Currency.ALL) } // Default to ALL
 
+    val activeCurrencies = getActiveCurrencies(orders)
+
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -70,7 +76,7 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
 
         WKDropdownMenu(
             label = "Currency",
-            items = Currency.values().toList(),
+            items = listOf(Currency.ALL) + activeCurrencies,
             selectedItem = selectedCurrency,
             onItemSelected = {
                 selectedCurrency = it
