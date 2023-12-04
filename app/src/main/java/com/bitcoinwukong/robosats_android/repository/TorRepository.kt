@@ -514,23 +514,14 @@ class TorRepository(val torManager: ITorManager) {
             JSONArray(it)
         }.fold(
             onSuccess = { jsonArray ->
-                val buyOrders = mutableListOf<OrderData>()
-                val sellOrders = mutableListOf<OrderData>()
+                val orders = mutableListOf<OrderData>()
 
                 for (i in 0 until jsonArray.length()) {
                     val orderJson = jsonArray.getJSONObject(i)
                     val orderData = OrderData.fromJson(orderJson)
-                    if (orderData.type == OrderType.BUY) buyOrders.add(orderData) else sellOrders.add(
-                        orderData
-                    )
+                    orders.add(orderData)
                 }
-
-                // Sorting by premium in descending order
-                buyOrders.sortWith(compareByDescending { it.premium })
-                sellOrders.sortWith(compareBy { it.premium })
-
-                val resultOrders = buyOrders + sellOrders
-                Result.success(resultOrders)
+                Result.success(orders)
             },
             onFailure = { errorMessage ->
                 Result.failure(IOException(errorMessage))

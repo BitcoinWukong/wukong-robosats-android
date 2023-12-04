@@ -39,6 +39,7 @@ import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.order.TakeOrderDialog
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
@@ -59,12 +60,23 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val tabTitles = listOf("Sell", "Buy")
 
     var selectedOrder: OrderData? by remember { mutableStateOf(null) }
+    var selectedCurrency by remember { mutableStateOf(Currency.ALL) } // Default to ALL
 
     Column(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxSize(),
     ) {
+
+        WKDropdownMenu(
+            label = "Currency",
+            items = Currency.values().toList(),
+            selectedItem = selectedCurrency,
+            onItemSelected = {
+                selectedCurrency = it
+            }
+        )
+
         TabRow(selectedTabIndex = selectedTabIndex) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
@@ -80,18 +92,31 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            LazyColumn {
-                items(orders.filter { order ->
+            val filteredSortedOrders = orders
+                .filter { order ->
+                    selectedCurrency == Currency.ALL || order.currency == selectedCurrency
+                }
+                .filter { order ->
                     (selectedTabIndex == 0 && order.type == OrderType.BUY) ||
                             (selectedTabIndex == 1 && order.type == OrderType.SELL)
-                }) { order ->
+                }
+                .sortedWith(
+                    if (selectedTabIndex == 0) // Sort descending for Buy
+                        compareByDescending { it.premium }
+                    else // Sort ascending for Sell
+                        compareBy { it.premium }
+                )
+
+            LazyColumn {
+                items(filteredSortedOrders) { order ->
                     OrderRow(order) {
                         if (selectedRobot?.privateKeyBundle == null) {
                             alertText =
                                 "No active robot available, please create a robot or wait until its loading is completed"
                             showAlert = true
                         } else if (selectedRobot!!.activeOrderId != null) {
-                            alertText = "Robot already has an active order. Please use a different robot."
+                            alertText =
+                                "Robot already has an active order. Please use a different robot."
                             showAlert = true
                         } else {
                             selectedOrder = order
