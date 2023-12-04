@@ -130,4 +130,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("org.bouncycastle:bcprov-jdk15on:1.69")
     implementation("org.bouncycastle:bcpg-jdk15on:1.69")
+    implementation("androidx.compose.foundation:foundation:1.5.4")
 }

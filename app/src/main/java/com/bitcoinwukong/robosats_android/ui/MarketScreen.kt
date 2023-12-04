@@ -1,6 +1,7 @@
 package com.bitcoinwukong.robosats_android.ui
 
 import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,20 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.pager.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,15 +27,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bitcoinwukong.robosats_android.mocks.MockSharedViewModel
-import com.bitcoinwukong.robosats_android.model.Currency
-import com.bitcoinwukong.robosats_android.model.OrderData
-import com.bitcoinwukong.robosats_android.model.OrderType
-import com.bitcoinwukong.robosats_android.model.PaymentMethod
-import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.model.*
 import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.order.TakeOrderDialog
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -52,6 +40,7 @@ fun getActiveCurrencies(orders: List<OrderData>): List<Currency> {
     return orders.map { it.currency }.distinct()
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val orders by viewModel.orders.observeAsState(emptyList())
@@ -62,20 +51,20 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     var showAlert by remember { mutableStateOf(false) }
     var alertText by remember { mutableStateOf("") }
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+//    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("Sell", "Buy")
 
     var selectedOrder: OrderData? by remember { mutableStateOf(null) }
     val context = LocalContext.current
     var selectedCurrency by remember { mutableStateOf(getSavedSelectedCurrency(context)) }
     val activeCurrencies = getActiveCurrencies(orders)
-
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = { tabTitles.size })
     Column(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxSize(),
     ) {
-
         WKDropdownMenu(
             label = "Currency",
             items = listOf(Currency.ALL) + activeCurrencies,
@@ -86,49 +75,55 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
             }
         )
 
-        TabRow(selectedTabIndex = selectedTabIndex) {
+        TabRow(
+            selectedTabIndex = pagerState.currentPage
+        ) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
-                    selected = index == selectedTabIndex,
-                    onClick = { selectedTabIndex = index },
+                    selected = pagerState.currentPage == index,
+                    onClick = { scope.launch { pagerState.scrollToPage(index) } },
                     text = { Text(title) }
                 )
             }
         }
 
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            val filteredSortedOrders = orders
-                .filter { order ->
-                    selectedCurrency == Currency.ALL || order.currency == selectedCurrency
-                }
-                .filter { order ->
-                    (selectedTabIndex == 0 && order.type == OrderType.BUY) ||
-                            (selectedTabIndex == 1 && order.type == OrderType.SELL)
-                }
-                .sortedWith(
-                    if (selectedTabIndex == 0) // Sort descending for Buy
-                        compareByDescending { it.premium }
-                    else // Sort ascending for Sell
-                        compareBy { it.premium }
-                )
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f)
+            // ... other properties
+        ) { page ->
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val filteredSortedOrders = orders
+                    .filter { order ->
+                        selectedCurrency == Currency.ALL || order.currency == selectedCurrency
+                    }
+                    .filter { order ->
+                        (page == 0 && order.type == OrderType.BUY) ||
+                                (page == 1 && order.type == OrderType.SELL)
+                    }
+                    .sortedWith(
+                        if (page == 0) // Sort descending for Buy
+                            compareByDescending { it.premium }
+                        else // Sort ascending for Sell
+                            compareBy { it.premium }
+                    )
 
-            LazyColumn {
-                items(filteredSortedOrders) { order ->
-                    OrderRow(order) {
-                        if (selectedRobot?.privateKeyBundle == null) {
-                            alertText =
-                                "No active robot available, please create a robot or wait until its loading is completed"
-                            showAlert = true
-                        } else if (selectedRobot!!.activeOrderId != null) {
-                            alertText =
-                                "Robot already has an active order. Please use a different robot."
-                            showAlert = true
-                        } else {
-                            selectedOrder = order
+                LazyColumn {
+                    items(filteredSortedOrders) { order ->
+                        OrderRow(order) {
+                            if (selectedRobot?.privateKeyBundle == null) {
+                                alertText =
+                                    "No active robot available, please create a robot or wait until its loading is completed"
+                                showAlert = true
+                            } else if (selectedRobot!!.activeOrderId != null) {
+                                alertText =
+                                    "Robot already has an active order. Please use a different robot."
+                                showAlert = true
+                            } else {
+                                selectedOrder = order
+                            }
                         }
                     }
                 }
