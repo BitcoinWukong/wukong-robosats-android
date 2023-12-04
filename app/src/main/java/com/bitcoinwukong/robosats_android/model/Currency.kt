@@ -1,6 +1,7 @@
 package com.bitcoinwukong.robosats_android.model
 
 enum class Currency(val id: Int, val code: String) {
+    ALL(0, "ALL"),
     USD(1, "USD"),
     EUR(2, "EUR"),
     JPY(3, "JPY"),
@@ -80,10 +81,6 @@ enum class Currency(val id: Int, val code: String) {
     BTC(1000, "BTC");
 
     companion object {
-        fun fromString(code: String): Currency? {
-            return values().firstOrNull { it.code.equals(code, ignoreCase = true) }
-        }
-
         fun fromId(id: Int): Currency {
             return values().firstOrNull { it.id == id }
                 ?: throw IllegalArgumentException("Invalid currency id: $id")

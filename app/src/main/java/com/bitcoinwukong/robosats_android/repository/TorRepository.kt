@@ -151,12 +151,36 @@ class TorRepository(val torManager: ITorManager) {
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
         testNet: Boolean = false,
-        checkTorConnection: Boolean = true
-    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        checkTorConnection: Boolean = true,
+    ): Result<JSONObject> = makeGenericGeneralRequest(
+        api,
+        token,
+        pubKey,
+        encPrivKey,
+        queryParams,
+        formBodyParams,
+        method,
+        testNet,
+        checkTorConnection,
+        parseResponse = { JSONObject(it) }
+    )
+
+    private suspend fun <T> makeGenericGeneralRequest(
+        api: String,
+        token: String? = null,
+        pubKey: String? = null,
+        encPrivKey: String? = null,
+        queryParams: Map<String, String> = emptyMap(),
+        formBodyParams: Map<String, String> = emptyMap(),
+        method: String = "GET",
+        testNet: Boolean = false,
+        checkTorConnection: Boolean = true,
+        parseResponse: (String) -> T
+    ): Result<T> = withContext(Dispatchers.IO) {
         val host = if (testNet) ROBOSATS_TESTNET else ROBOSATS_MAINNET
 
         try {
-            var jsonObject: JSONObject? = null
+            var result: T? = null
 
             // Build the URL
             val urlBuilder = HttpUrl.Builder()
@@ -209,7 +233,7 @@ class TorRepository(val torManager: ITorManager) {
                 method = method,
                 onSuccess = { responseData ->
                     Log.d(TAG, "makeGeneralRequest response received: $responseData")
-                    jsonObject = JSONObject(responseData)
+                    result = parseResponse(responseData)
                 },
                 onFailure = { errorMessage ->
                     Log.e(TAG, "Error in makeGeneralRequest: $errorMessage")
@@ -217,7 +241,7 @@ class TorRepository(val torManager: ITorManager) {
                 },
                 checkTorConnection = checkTorConnection
             )
-            Result.success(jsonObject ?: throw IllegalStateException("No response data"))
+            Result.success(result ?: throw IllegalStateException("No response data"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -298,7 +322,14 @@ class TorRepository(val torManager: ITorManager) {
                     }
                 }
 
-                Result.success(ChatMessagesResponse(messageDataList, peerConnected, peerPublicKey, offset))
+                Result.success(
+                    ChatMessagesResponse(
+                        messageDataList,
+                        peerConnected,
+                        peerPublicKey,
+                        offset
+                    )
+                )
             },
             onFailure = { e ->
                 Result.failure(e)
@@ -472,56 +503,39 @@ class TorRepository(val torManager: ITorManager) {
         }
     }
 
-    suspend fun listOrders(): Result<List<OrderData>> = withContext(Dispatchers.IO) {
+    suspend fun listOrders(
+        currency: Int = 0,
+    ): Result<List<OrderData>> = withContext(Dispatchers.IO) {
         if (isCurrentlyUpdating.getAndSet(true)) {
             Log.d(TAG, "Update already in progress. Fetch aborted.")
             return@withContext Result.failure(IllegalStateException("Update in progress"))
         }
         _isUpdating.postValue(true)
 
-        try {
-            var resultOrders = listOf<OrderData>()
-            val url = HttpUrl.Builder()
-                .scheme("http")
-                .host("robosats6tkf3eva7x2voqso3a5wcorsnw34jveyxfqi2fu7oyheasid.onion")
-                .addPathSegment("api")
-                .addPathSegment("book")
-                .addQueryParameter("currency", "1")
-                .addQueryParameter("type", "2")
-                .build()
-            Log.d("Network", "listing orders....")
-            makeApiRequest(
-                url = url,
-                onSuccess = { responseData ->
-                    val jsonArray = JSONArray(responseData)
-                    val buyOrders = mutableListOf<OrderData>()
-                    val sellOrders = mutableListOf<OrderData>()
+        val queryParams = mapOf(
+            "currency" to currency.toString(),
+            "type" to "2", // Both sell and buy
+        )
+        makeGenericGeneralRequest(
+            api = "book",
+            queryParams = queryParams,
+        ) {
+            JSONArray(it)
+        }.fold(
+            onSuccess = { jsonArray ->
+                val orders = mutableListOf<OrderData>()
 
-                    for (i in 0 until jsonArray.length()) {
-                        val orderJson = jsonArray.getJSONObject(i)
-                        val orderData = OrderData.fromJson(orderJson)
-                        if (orderData.type == OrderType.BUY) buyOrders.add(orderData) else sellOrders.add(
-                            orderData
-                        )
-                    }
-
-                    // Sorting by premium in descending order
-                    val comparator = compareByDescending<OrderData> { it.premium }
-                    buyOrders.sortWith(comparator)
-                    sellOrders.sortWith(comparator)
-
-                    resultOrders = buyOrders + sellOrders
-                },
-                onFailure = { errorMessage ->
-                    throw IOException(errorMessage)
+                for (i in 0 until jsonArray.length()) {
+                    val orderJson = jsonArray.getJSONObject(i)
+                    val orderData = OrderData.fromJson(orderJson)
+                    orders.add(orderData)
                 }
-            )
-            Result.success(resultOrders)
-        } catch (e: Exception) {
-            Result.failure(e)
-        } finally {
-            // Call the actual API to fetch orders
-            // After fetching orders:
+                Result.success(orders)
+            },
+            onFailure = { errorMessage ->
+                Result.failure(IOException(errorMessage))
+            }
+        ).also {
             isCurrentlyUpdating.set(false)
             _isUpdating.postValue(false)
         }

@@ -1,5 +1,6 @@
 package com.bitcoinwukong.robosats_android.ui
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,11 +41,16 @@ import com.bitcoinwukong.robosats_android.model.OrderData
 import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
+import com.bitcoinwukong.robosats_android.ui.components.WKDropdownMenu
 import com.bitcoinwukong.robosats_android.ui.order.TakeOrderDialog
 import com.bitcoinwukong.robosats_android.ui.theme.RobosatsAndroidTheme
 import com.bitcoinwukong.robosats_android.viewmodel.ISharedViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+fun getActiveCurrencies(orders: List<OrderData>): List<Currency> {
+    return orders.map { it.currency }.distinct()
+}
 
 @Composable
 fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
@@ -59,12 +66,26 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val tabTitles = listOf("Sell", "Buy")
 
     var selectedOrder: OrderData? by remember { mutableStateOf(null) }
+    val context = LocalContext.current
+    var selectedCurrency by remember { mutableStateOf(getSavedSelectedCurrency(context)) }
+    val activeCurrencies = getActiveCurrencies(orders)
 
     Column(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxSize(),
     ) {
+
+        WKDropdownMenu(
+            label = "Currency",
+            items = listOf(Currency.ALL) + activeCurrencies,
+            selectedItem = selectedCurrency,
+            onItemSelected = {
+                selectedCurrency = it
+                saveSelectedCurrency(context, it) // Save the selection
+            }
+        )
+
         TabRow(selectedTabIndex = selectedTabIndex) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
@@ -80,18 +101,31 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            LazyColumn {
-                items(orders.filter { order ->
+            val filteredSortedOrders = orders
+                .filter { order ->
+                    selectedCurrency == Currency.ALL || order.currency == selectedCurrency
+                }
+                .filter { order ->
                     (selectedTabIndex == 0 && order.type == OrderType.BUY) ||
                             (selectedTabIndex == 1 && order.type == OrderType.SELL)
-                }) { order ->
+                }
+                .sortedWith(
+                    if (selectedTabIndex == 0) // Sort descending for Buy
+                        compareByDescending { it.premium }
+                    else // Sort ascending for Sell
+                        compareBy { it.premium }
+                )
+
+            LazyColumn {
+                items(filteredSortedOrders) { order ->
                     OrderRow(order) {
                         if (selectedRobot?.privateKeyBundle == null) {
                             alertText =
                                 "No active robot available, please create a robot or wait until its loading is completed"
                             showAlert = true
                         } else if (selectedRobot!!.activeOrderId != null) {
-                            alertText = "Robot already has an active order. Please use a different robot."
+                            alertText =
+                                "Robot already has an active order. Please use a different robot."
                             showAlert = true
                         } else {
                             selectedOrder = order
@@ -204,6 +238,24 @@ fun OrderRow(orderData: OrderData, onClick: () -> Unit) {
         )
     }
 }
+
+fun getSavedSelectedCurrency(context: Context): Currency {
+    val sharedPreferences =
+        context.getSharedPreferences("RobosatsPreferences", Context.MODE_PRIVATE)
+    val currencyName =
+        sharedPreferences.getString("selectedCurrency", Currency.ALL.name) ?: Currency.ALL.name
+    return Currency.valueOf(currencyName)
+}
+
+fun saveSelectedCurrency(context: Context, selectedCurrency: Currency) {
+    val sharedPreferences =
+        context.getSharedPreferences("RobosatsPreferences", Context.MODE_PRIVATE)
+    with(sharedPreferences.edit()) {
+        putString("selectedCurrency", selectedCurrency.name)
+        apply()
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
