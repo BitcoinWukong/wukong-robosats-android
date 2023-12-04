@@ -142,7 +142,30 @@ class TorRepository(val torManager: ITorManager) {
         onFailure("Failed after $maxRetries attempts")
     }
 
-    private suspend fun <T> makeGeneralRequest(
+    private suspend fun makeGeneralRequest(
+        api: String,
+        token: String? = null,
+        pubKey: String? = null,
+        encPrivKey: String? = null,
+        queryParams: Map<String, String> = emptyMap(),
+        formBodyParams: Map<String, String> = emptyMap(),
+        method: String = "GET",
+        testNet: Boolean = false,
+        checkTorConnection: Boolean = true,
+    ): Result<JSONObject> = makeGenericGeneralRequest(
+        api,
+        token,
+        pubKey,
+        encPrivKey,
+        queryParams,
+        formBodyParams,
+        method,
+        testNet,
+        checkTorConnection,
+        parseResponse = { JSONObject(it) }
+    )
+
+    private suspend fun <T> makeGenericGeneralRequest(
         api: String,
         token: String? = null,
         pubKey: String? = null,
@@ -229,9 +252,7 @@ class TorRepository(val torManager: ITorManager) {
             makeGeneralRequest(
                 api = "info",
                 checkTorConnection = checkTorConnection
-            ) {
-                JSONObject(it)
-            }
+            )
         }
 
     suspend fun getRobotInfo(
@@ -245,9 +266,7 @@ class TorRepository(val torManager: ITorManager) {
             token = token,
             pubKey = publicKey,
             encPrivKey = encPrivKey
-        ) {
-            JSONObject(it)
-        }.fold(
+        ).fold(
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
                 Log.d(
@@ -280,9 +299,7 @@ class TorRepository(val torManager: ITorManager) {
             pubKey = robot.publicKey,
             encPrivKey = robot.encryptedPrivateKey,
             queryParams = queryParams,
-        ) {
-            JSONObject(it)
-        }.fold(
+        ).fold(
             onSuccess = { jsonObject ->
                 val offset = jsonObject.optInt("offset", -1).takeIf { it >= 0 }
                 val peerConnected = jsonObject.getBoolean("peer_connected")
@@ -337,9 +354,7 @@ class TorRepository(val torManager: ITorManager) {
             token = robot.token,
             formBodyParams = formBodyParams,
             method = "POST"
-        ) {
-            JSONObject(it)
-        }
+        )
     }
 
     suspend fun makeOrder(
@@ -394,9 +409,7 @@ class TorRepository(val torManager: ITorManager) {
             token = token,
             formBodyParams = formBodyParams,
             method = "POST"
-        ) {
-            JSONObject(it)
-        }
+        )
     }
 
     suspend fun getOrderDetails(
@@ -408,9 +421,7 @@ class TorRepository(val torManager: ITorManager) {
             api = "order",
             token = token,
             queryParams = mapOf("order_id" to orderId.toString()),
-        ) {
-            JSONObject(it)
-        }.fold(
+        ).fold(
             onSuccess = { jsonObject ->
                 Result.success(OrderData.fromJson(jsonObject))
             },
@@ -486,9 +497,7 @@ class TorRepository(val torManager: ITorManager) {
                 queryParams = mapOf("order_id" to orderId.toString()),
                 formBodyParams = formBodyParams,
                 method = "POST"
-            ) {
-                JSONObject(it)
-            }
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -507,7 +516,7 @@ class TorRepository(val torManager: ITorManager) {
             "currency" to currency.toString(),
             "type" to "2", // Both sell and buy
         )
-        makeGeneralRequest(
+        makeGenericGeneralRequest(
             api = "book",
             queryParams = queryParams,
         ) {
