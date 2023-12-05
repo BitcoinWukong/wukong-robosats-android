@@ -145,8 +145,8 @@ class TorRepository(val torManager: ITorManager) {
     private suspend fun makeGeneralRequest(
         api: String,
         token: String? = null,
-        pubKey: String? = null,
-        encPrivKey: String? = null,
+        publicKey: String? = null,
+        encryptedPrivateKey: String? = null,
         queryParams: Map<String, String> = emptyMap(),
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
@@ -155,8 +155,8 @@ class TorRepository(val torManager: ITorManager) {
     ): Result<JSONObject> = makeGenericGeneralRequest(
         api,
         token,
-        pubKey,
-        encPrivKey,
+        publicKey,
+        encryptedPrivateKey,
         queryParams,
         formBodyParams,
         method,
@@ -168,8 +168,8 @@ class TorRepository(val torManager: ITorManager) {
     private suspend fun <T> makeGenericGeneralRequest(
         api: String,
         token: String? = null,
-        pubKey: String? = null,
-        encPrivKey: String? = null,
+        publicKey: String? = null,
+        encryptedPrivateKey: String? = null,
         queryParams: Map<String, String> = emptyMap(),
         formBodyParams: Map<String, String> = emptyMap(),
         method: String = "GET",
@@ -200,14 +200,14 @@ class TorRepository(val torManager: ITorManager) {
                 val hashedToken = hashTokenAsBase91(tokenValue)
                 val authValue = buildString {
                     append("Token $hashedToken")
-                    if (pubKey != null && encPrivKey != null) {
+                    if (publicKey != null && encryptedPrivateKey != null) {
                         append(
                             " | Public ${
-                                pubKey.replace(
+                                publicKey.replace(
                                     "\n",
                                     "\\"
                                 )
-                            } | Private ${encPrivKey.replace("\n", "\\")}"
+                            } | Private ${encryptedPrivateKey.replace("\n", "\\")}"
                         )
                     }
                 }
@@ -258,14 +258,14 @@ class TorRepository(val torManager: ITorManager) {
     suspend fun getRobotInfo(
         token: String,
         publicKey: String? = null,
-        encPrivKey: String? = null
+        encryptedPrivateKey: String? = null
     ): Result<Robot> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "getRobotInfo: $token, $publicKey, $encPrivKey")
+        Log.d(TAG, "getRobotInfo: $token, $publicKey, $encryptedPrivateKey")
         makeGeneralRequest(
             api = "robot",
             token = token,
-            pubKey = publicKey,
-            encPrivKey = encPrivKey
+            publicKey = publicKey,
+            encryptedPrivateKey = encryptedPrivateKey
         ).fold(
             onSuccess = { jsonObject ->
                 val robot = Robot.fromTokenAndJson(token, jsonObject)
@@ -296,8 +296,8 @@ class TorRepository(val torManager: ITorManager) {
         makeGeneralRequest(
             api = "chat",
             token = robot.token,
-            pubKey = robot.publicKey,
-            encPrivKey = robot.encryptedPrivateKey,
+            publicKey = robot.publicKey,
+            encryptedPrivateKey = robot.encryptedPrivateKey,
             queryParams = queryParams,
         ).fold(
             onSuccess = { jsonObject ->
@@ -467,8 +467,8 @@ class TorRepository(val torManager: ITorManager) {
         token: String,
         orderId: Int,
         action: String,
-        pubKey: String? = null,
-        encPrivKey: String? = null,
+        publicKey: String? = null,
+        encryptedPrivateKey: String? = null,
         invoice: String? = null,
         routingBudgetPpm: Int? = null,
         address: String? = null,
@@ -492,8 +492,8 @@ class TorRepository(val torManager: ITorManager) {
             makeGeneralRequest(
                 api = "order",
                 token = token,
-                pubKey = pubKey,
-                encPrivKey = encPrivKey,
+                publicKey = publicKey,
+                encryptedPrivateKey = encryptedPrivateKey,
                 queryParams = mapOf("order_id" to orderId.toString()),
                 formBodyParams = formBodyParams,
                 method = "POST"

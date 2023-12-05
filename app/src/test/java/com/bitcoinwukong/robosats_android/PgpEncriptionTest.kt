@@ -28,7 +28,7 @@ class PgpKeyGeneratorTest {
     @Test
     fun testSerializeDeserializePrivateKey() {
         val robotToken = "C2etfi7nPeUD7rCcwAOy4XoLvEAxbTRGSK6H"
-        val encPrivKey = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
+        val encryptedPrivateKey = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
                 "\n" +
                 "xYYEZVO9bxYJKwYBBAHaRw8BAQdAVyePBQK63FB2r5ZpIqO998WaqZjmro+L\n" +
                 "FNH+sw2raQD+CQMIHkZZZnDa6d/gHioGTKf6JevirkCBWwz8tFLGFs5DFwjD\n" +
@@ -46,7 +46,7 @@ class PgpKeyGeneratorTest {
                 "AQC1kpWxyAmEzcvS+ildGuaV28XF6c3o3I6SZlcM7ls/Dw==\n" +
                 "=YAfZ\n" +
                 "-----END PGP PRIVATE KEY BLOCK-----"
-        val pgpPrivateKeys = decryptPrivateKeys(encPrivKey, robotToken)
+        val pgpPrivateKeys = decryptPrivateKeys(encryptedPrivateKey, robotToken)
         val decryptionKey = pgpPrivateKeys.encryptionKey
         val encodedKeyStr = PgpKeyGenerator.serializePGPPrivateKey(decryptionKey)
         val decodedPrivateKey = PgpKeyGenerator.deserializePGPPrivateKey(encodedKeyStr, false)
@@ -64,7 +64,7 @@ class PgpKeyGeneratorTest {
     @Test
     fun testDecryptPrivateKey() {
         val robotToken = "C2etfi7nPeUD7rCcwAOy4XoLvEAxbTRGSK6H"
-        val encPrivKey = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
+        val encryptedPrivateKey = "-----BEGIN PGP PRIVATE KEY BLOCK-----\n" +
                 "\n" +
                 "xYYEZVO9bxYJKwYBBAHaRw8BAQdAVyePBQK63FB2r5ZpIqO998WaqZjmro+L\n" +
                 "FNH+sw2raQD+CQMIHkZZZnDa6d/gHioGTKf6JevirkCBWwz8tFLGFs5DFwjD\n" +
@@ -83,7 +83,7 @@ class PgpKeyGeneratorTest {
                 "=YAfZ\n" +
                 "-----END PGP PRIVATE KEY BLOCK-----"
         val keyId = 7088936486162781302
-        val pgpPrivateKey = decryptPrivateKeys(encPrivKey, robotToken).encryptionKey
+        val pgpPrivateKey = decryptPrivateKeys(encryptedPrivateKey, robotToken).encryptionKey
         assertEquals(keyId, pgpPrivateKey.keyID)
     }
 
