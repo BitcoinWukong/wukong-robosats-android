@@ -93,7 +93,6 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f)
-            // ... other properties
         ) { page ->
             Box(
                 modifier = Modifier.fillMaxSize()
