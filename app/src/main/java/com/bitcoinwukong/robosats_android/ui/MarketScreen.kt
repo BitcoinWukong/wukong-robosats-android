@@ -48,18 +48,21 @@ fun MarketScreen(viewModel: ISharedViewModel = viewModel()) {
     val isTorReady by viewModel.isTorReady.observeAsState(false)
     val lastUpdated by viewModel.lastUpdated.observeAsState()
     val selectedRobot: Robot? by viewModel.selectedRobot.observeAsState(null)
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var selectedCurrency by remember { mutableStateOf(getSavedSelectedCurrency(context)) }
+    val activeCurrencies = getActiveCurrencies(orders)
+
+    val tabTitles = listOf("Sell", "Buy")
+    val pagerState = rememberPagerState(pageCount = { tabTitles.size })
+
+    var selectedOrder: OrderData? by remember { mutableStateOf(null) }
     var showAlert by remember { mutableStateOf(false) }
     var alertText by remember { mutableStateOf("") }
 
-//    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Sell", "Buy")
 
-    var selectedOrder: OrderData? by remember { mutableStateOf(null) }
-    val context = LocalContext.current
-    var selectedCurrency by remember { mutableStateOf(getSavedSelectedCurrency(context)) }
-    val activeCurrencies = getActiveCurrencies(orders)
-    val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(pageCount = { tabTitles.size })
     Column(
         modifier = Modifier
             .padding(16.dp)
