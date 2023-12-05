@@ -89,7 +89,7 @@ class TorRepositoryIntegrationTest {
     @Test
     fun testGenerateRobot() {
         val token = generateSecureToken()
-        val (pubkey, encPrivKey) = PgpKeyGenerator.generateKeyPair("12345", token)
+        val (publicKey, encryptedPrivateKey) = PgpKeyGenerator.generateKeyPair("12345", token)
         runBlocking {
             // Context of the app under test.
             val appContext = InstrumentationRegistry.getInstrumentation().targetContext
@@ -101,11 +101,11 @@ class TorRepositoryIntegrationTest {
             val torManager = TorManager(application)
 
             val torRepository = TorRepository(torManager)
-            val result = torRepository.getRobotInfo(token, pubkey, encPrivKey)
+            val result = torRepository.getRobotInfo(token, publicKey, encryptedPrivateKey)
 
             result.onSuccess { robotInfo ->
-                assertEquals(pubkey, robotInfo.publicKey)
-                assertEquals(encPrivKey, robotInfo.encryptedPrivateKey)
+                assertEquals(publicKey, robotInfo.publicKey)
+                assertEquals(encryptedPrivateKey, robotInfo.encryptedPrivateKey)
             }.onFailure { e ->
                 fail("Post request failed: ${e.message}")
             }
