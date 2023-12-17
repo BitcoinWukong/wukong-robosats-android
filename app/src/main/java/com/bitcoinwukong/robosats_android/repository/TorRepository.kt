@@ -11,6 +11,7 @@ import com.bitcoinwukong.robosats_android.model.OrderType
 import com.bitcoinwukong.robosats_android.model.PaymentMethod
 import com.bitcoinwukong.robosats_android.model.Robot
 import com.bitcoinwukong.robosats_android.network.ITorManager
+import com.bitcoinwukong.robosats_android.utils.ROBOSATS_DEVNODE
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_MAINNET
 import com.bitcoinwukong.robosats_android.utils.ROBOSATS_TESTNET
 import com.bitcoinwukong.robosats_android.utils.TOR_SOCKS_PORT
@@ -177,7 +178,7 @@ class TorRepository(val torManager: ITorManager) {
         checkTorConnection: Boolean = true,
         parseResponse: (String) -> T
     ): Result<T> = withContext(Dispatchers.IO) {
-        val host = if (testNet) ROBOSATS_TESTNET else ROBOSATS_MAINNET
+        val host = ROBOSATS_DEVNODE
 
         try {
             var result: T? = null
