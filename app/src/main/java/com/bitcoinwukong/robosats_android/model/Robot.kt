@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.io.IOException
 
 fun errorRobot(token: String, errorMessage: String): Robot {
     return Robot(
@@ -78,6 +79,8 @@ data class Robot(
                     robot.privateKeyBundle = PgpKeyManager.waitForDecryption(encryptedKey)
                     if (robot.privateKeyBundle != null) {
                         onPrivateKeyDecrypted(robot)
+                    } else {
+                        throw IOException("Unable to decrypt private key for robot")
                     }
                 }
             }
@@ -95,6 +98,11 @@ data class Robot(
                 "Robot", "Robot $token pgpPrivateKey is null, continue the private key decryption"
             )
             privateKeyBundle = PgpKeyManager.waitForDecryption(encryptedPrivateKey!!)
+            if (privateKeyBundle != null) {
+                onPrivateKeyDecrypted(this)
+            } else {
+                throw IOException("Unable to decrypt private key for robot")
+            }
         }
 
         messageData.message = PgpKeyGenerator.decryptMessage(
